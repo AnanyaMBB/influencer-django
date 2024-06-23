@@ -7,5 +7,6 @@ urlpatterns = [
     path('api/token/refresh', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/register/business', views.businessRegister, name='businessRegister'),
     path('api/register/influencer', views.influencerRegister, name='influencerRegister'),
-    path('api/influencer/instagram', views.influencerInstagramInformationAdd, name='influencerInstagramInformationAdd')
+    path('api/influencer/instagram', views.influencerInstagramInformationAdd, name='influencerInstagramInformationAdd'),
+    path('api/influencer/instagram/get', views.influencerInstagramInformationGet, name='influencerInstagramInformationGet')
 ]

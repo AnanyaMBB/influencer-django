@@ -40,11 +40,19 @@ class InfluencerRegisterSerializer(serializers.ModelSerializer):
         return user
     
 class InfluencerInstagramInformationSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(write_only=True)
     class Meta:
         model = InfluencerInstagramInformation
         exclude=['influencer']
+        
     
-    def create(self, validated_data):
-        influencer = InfluencerAccount.objects.get(user=validated_data['influencer'])
+    def create(self, validated_data):        
+        user = User.objects.get(username=validated_data['user'])
+        validated_data.pop('user')
+        influencer = InfluencerAccount.objects.get(user=user)
         return InfluencerInstagramInformation.objects.create(influencer=influencer, **validated_data)
 
+class InfluencerInformationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InfluencerInstagramInformation
+        fields = '__all__'

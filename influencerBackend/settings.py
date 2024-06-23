@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-rx6-%l#%^z!lmbfnafsyd9sl9$jr=+2abn86h-6r&^6)yb#io8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*']
 
 from datetime import timedelta 
 SIMPLE_JWT = {
@@ -64,7 +64,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',)
 }
 
-CORS_ALLOWED_ORIGINS = ['http://localhost:3000']
+CORS_ALLOWED_ORIGINS = ['http://localhost:3000', 'https://361e3dbcf910367999535abb1896389c.loophole.site', 'https://4b87fdd3364da9d7d6a96493295368ee.loophole.site']
 
 ROOT_URLCONF = 'influencerBackend.urls'
 
