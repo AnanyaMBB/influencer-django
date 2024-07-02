@@ -24,19 +24,21 @@ class InfluencerAccount(models.Model):
 class InfluencerInstagramInformation(models.Model):
     influencer = models.ForeignKey(InfluencerAccount, on_delete=models.CASCADE)
     instagram_id = models.CharField(unique=True, max_length=100, null=True, blank=True)
-    name = models.CharField(max_length=100, null=True, blank=True)
-    username = models.CharField(max_length=100, null=True, blank=True)
-    profile_picture_url = models.CharField(max_length=1000, null=True, blank=True)
-    biography = models.CharField(max_length=100, null=True, blank=True)
-    followers = models.IntegerField(null=True, blank=True)
-    following = models.IntegerField(null=True, blank=True)
-    posts = models.IntegerField(null=True, blank=True)
-    website=models.CharField(max_length=1000, null=True, blank=True)
     long_access_token = models.CharField(max_length=300, null=True, blank=True)
 
 class InstagramBase(models.Model):
     influencer_instagram_information = models.ForeignKey(InfluencerInstagramInformation, on_delete=models.CASCADE)
     date = models.DateTimeField(auto_now_add=True)
+
+class InstagramInitialInformation(InstagramBase): 
+    name = models.CharField(max_length=100, null=True, blank=True)
+    username = models.CharField(max_length=100, null=True, blank=True)
+    profile_picture_url = models.CharField(max_length=1000, null=True, blank=True)
+    biography = models.CharField(max_length=100, null=True, blank=True)
+    followers_count = models.IntegerField(null=True, blank=True)
+    follows_count = models.IntegerField(null=True, blank=True)
+    media_count = models.IntegerField(null=True, blank=True)
+    website=models.CharField(max_length=1000, null=True, blank=True)
 
 class InstagramDetails(InstagramBase):
     likes = models.IntegerField(null=True, blank=True)
@@ -46,6 +48,7 @@ class InstagramDetails(InstagramBase):
     replies = models.IntegerField(null=True, blank=True)
     profile_links_taps = models.IntegerField(null=True, blank=True)
     website_clicks = models.IntegerField(null=True, blank=True)
+    profile_views = models.IntegerField(null=True, blank=True)
     impressions = models.IntegerField(null=True, blank=True)
     reach = models.IntegerField(null=True, blank=True)
     total_interactions = models.IntegerField(null=True, blank=True)
