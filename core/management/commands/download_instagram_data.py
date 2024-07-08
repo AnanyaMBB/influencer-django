@@ -56,84 +56,97 @@ class Command(BaseCommand):
         detailsString = "likes,comments,saves,shares,profile_views,replies,profile_links_taps,website_clicks,profile_views,impressions,reach,total_interactions,accounts_engaged"
 
         date = datetime.now()
+        date = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 
         influencerAccounts = InfluencerAccount.objects.all()
         for influencerAccount in influencerAccounts:
-            influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
-                influencer=influencerAccount
+            influencerInstagramInformations = (
+                InfluencerInstagramInformation.objects.filter(
+                    influencer=influencerAccount
+                )
             )
 
             # Get Instagram Initial Information
-            try:
-                self.getInitialInformation(
-                    influencerInstagramInformation, date, initialInformations
-                )
-            except Exception as e:
-                print("Error in Instagram Initial Information", e)
+            if len(influencerInstagramInformations) < 1:
+                continue
+            for influencerInstagramInformation in influencerInstagramInformations:
+                try:
+                    self.getInitialInformation(
+                        influencerInstagramInformation, date, initialInformations
+                    )
+                except Exception as e:
+                    print("Error in Instagram Initial Information", e)
 
-            # Get Instagram Details
-            try:
-                self.getDetails(influencerInstagramInformation, date, detailsString)
-            except Exception as e:
-                print("Error in Instagram Details", e)
+                # Get Instagram Details
+                try:
+                    self.getDetails(influencerInstagramInformation, date, detailsString)
+                except Exception as e:
+                    print("Error in Instagram Details", e)
 
-            # Get Demographics Data
-            for breakdown in demographicsDataBreakdowns:
-                for dataTypeIdentifier, dataType in enumerate(demographicsDataTypes):
-                    for timeframe in timeframes:
-                        if breakdown == "age":
-                            try:
-                                self.getDemographicsData(
-                                    influencerInstagramInformation,
-                                    date,
-                                    timeframe,
-                                    breakdown,
-                                    dataTypeIdentifier,
-                                    dataType,
-                                    ages,
-                                )
-                            except Exception as e:
-                                print("Error in age demographics", e)
+                # Get Demographics Data
+                for breakdown in demographicsDataBreakdowns:
+                    for dataTypeIdentifier, dataType in enumerate(
+                        demographicsDataTypes
+                    ):
+                        for timeframe in timeframes:
+                            if breakdown == "age":
+                                try:
+                                    self.getDemographicsData(
+                                        influencerInstagramInformation,
+                                        date,
+                                        timeframe,
+                                        breakdown,
+                                        dataTypeIdentifier,
+                                        dataType,
+                                        ages,
+                                    )
+                                except Exception as e:
+                                    print("Error in age demographics", e)
 
-                        elif breakdown == "gender":
-                            try:
-                                self.getDemographicsData(
-                                    influencerInstagramInformation,
-                                    date,
-                                    timeframe,
-                                    breakdown,
-                                    dataTypeIdentifier,
-                                    dataType,
-                                    genders,
-                                )
-                            except Exception as e:
-                                print("Error in gender demographics", e)
-                        elif breakdown == "city":
-                            try:
-                                self.getDemographicsData(
-                                    influencerInstagramInformation,
-                                    date,
-                                    timeframe,
-                                    breakdown,
-                                    dataTypeIdentifier,
-                                    dataType,
-                                    None,
-                                )
-                            except Exception as e:
-                                print("Error in city demographics", e)
-                        elif breakdown == "country":
-                            try:
-                                self.getDemographicsData(
-                                    influencerInstagramInformation,
-                                    date,
-                                    timeframe,
-                                    breakdown,
-                                    dataTypeIdentifier,
-                                    dataType,
-                                    None,
-                                )
-                            except Exception as e:
-                                print("Error in country demographics", e)
+                            elif breakdown == "gender":
+                                try:
+                                    self.getDemographicsData(
+                                        influencerInstagramInformation,
+                                        date,
+                                        timeframe,
+                                        breakdown,
+                                        dataTypeIdentifier,
+                                        dataType,
+                                        genders,
+                                    )
+                                except Exception as e:
+                                    print("Error in gender demographics", e)
+                            elif breakdown == "city":
+                                try:
+                                    self.getDemographicsData(
+                                        influencerInstagramInformation,
+                                        date,
+                                        timeframe,
+                                        breakdown,
+                                        dataTypeIdentifier,
+                                        dataType,
+                                        None,
+                                    )
+                                except Exception as e:
+                                    print("Error in city demographics", e)
+                            elif breakdown == "country":
+                                try:
+                                    self.getDemographicsData(
+                                        influencerInstagramInformation,
+                                        date,
+                                        timeframe,
+                                        breakdown,
+                                        dataTypeIdentifier,
+                                        dataType,
+                                        None,
+                                    )
+                                except Exception as e:
+                                    print("Error in country demographics", e)
+                # Get Media Data
+                try:
+                    self.getMediaData(influencerInstagramInformation, date)
+                except Exception as e:
+                    print("Error in Media Data", e)
 
     def getInitialInformation(
         self, influencerInstagramInformation, date, initialInformations
@@ -142,7 +155,7 @@ class Command(BaseCommand):
         facebookApiRequest = requests.get(
             f"https://graph.facebook.com/v18.0/{influencerInstagramInformation.instagram_id}"
             f"?fields=name,username,profile_picture_url,biography,followers_count,follows_count,media_count,website"
-            f"&access_token=${access_token}"
+            f"&access_token={access_token}"
         )
 
         instagramInitialInformation, _ = (
@@ -152,11 +165,12 @@ class Command(BaseCommand):
             )
         )
         for initialInformation in initialInformations:
-            setattr(
-                instagramInitialInformation,
-                initialInformation,
-                facebookApiRequest.json()[initialInformation],
-            )
+            if initialInformation in facebookApiRequest.json():
+                setattr(
+                    instagramInitialInformation,
+                    initialInformation,
+                    (facebookApiRequest.json()[initialInformation]),
+                )
         instagramInitialInformation.save()
 
     def getDetails(self, influencerInstagramInformation, date, detailsString):
@@ -169,12 +183,13 @@ class Command(BaseCommand):
             f"&access_token={access_token}"
         )
 
-        instagramDetail = InstagramDetails.objects.get_or_create(
+        instagramDetail, _ = InstagramDetails.objects.get_or_create(
             influencer_instagram_information=influencerInstagramInformation,
             date=date,
         )
-        for result in facebookApiRequest.json()["data"]:
-            setattr(instagramDetail, result["name"], result["total_value"]["value"])
+        if "data" in facebookApiRequest.json():
+            for result in facebookApiRequest.json()["data"]:
+                setattr(instagramDetail, result["name"], result["total_value"]["value"])
         instagramDetail.save()
 
     def getDemographicsData(
@@ -206,7 +221,8 @@ class Command(BaseCommand):
                     type_identifier=dataTypeIdentifier,
                 )
             )
-
+            if "error" in facebookApiRequest.json():
+                return
             for result, age in zip(
                 facebookApiRequest.json()["data"][0]["total_value"]["breakdowns"][0][
                     "results"
@@ -227,6 +243,9 @@ class Command(BaseCommand):
                 f"&metric_type=total_value"
                 f"&access_token={access_token}"
             )
+
+            if "error" in facebookApiRequest.json():
+                return
 
             instagramGenderDemographics, _ = (
                 InstagramGenderDemographics.objects.get_or_create(
@@ -259,19 +278,22 @@ class Command(BaseCommand):
                 f"&access_token={access_token}"
             )
 
-            instagramCityDemographics, _ = (
-                InstagramCityDemographics.objects.get_or_create(
-                    influencer_instagram_information=influencerInstagramInformation,
-                    date=date,
-                    type_identifier=dataTypeIdentifier,
-                )
-            )
+            if "error" in facebookApiRequest.json():
+                return
 
             for count, result in enumerate(
                 facebookApiRequest.json()["data"][0]["total_value"]["breakdowns"][0][
                     "results"
                 ]
             ):
+                instagramCityDemographics, _ = (
+                    InstagramCityDemographics.objects.get_or_create(
+                        influencer_instagram_information=influencerInstagramInformation,
+                        count=count,
+                        date=date,
+                        type_identifier=dataTypeIdentifier,
+                    )
+                )
 
                 setattr(
                     instagramCityDemographics,
@@ -283,7 +305,7 @@ class Command(BaseCommand):
                     timeframe + "_follower_count",
                     result["value"],
                 )
-            instagramCityDemographics.save()
+                instagramCityDemographics.save()
 
         elif breakdown == "country":
             facebookApiRequest = requests.get(
@@ -296,27 +318,151 @@ class Command(BaseCommand):
                 f"&access_token={access_token}"
             )
 
-            instagramCountryDemographics, _ = (
-                InstagramCountryDemographics.objects.get_or_create(
-                    influencer_instagram_information=influencerInstagramInformation,
-                    date=date,
-                    type_identifier=dataTypeIdentifier,
-                )
-            )
+            if "error" in facebookApiRequest.json():
+                return
+
             for count, result in enumerate(
                 facebookApiRequest.json()["data"][0]["total_value"]["breakdowns"][0][
                     "results"
                 ]
             ):
+                instagramCountryDemographics, _ = (
+                    InstagramCountryDemographics.objects.get_or_create(
+                        influencer_instagram_information=influencerInstagramInformation,
+                        count=count,
+                        date=date,
+                        type_identifier=dataTypeIdentifier,
+                    )
+                )
 
                 setattr(
                     instagramCountryDemographics,
                     timeframe + "_country",
-                    result["dimension_values"],
+                    result["dimension_values"][0],
                 )
                 setattr(
                     instagramCountryDemographics,
                     timeframe + "_follower_count",
                     result["value"],
                 )
-            instagramCountryDemographics.save()
+                instagramCountryDemographics.save()
+
+    def getMediaData(self, influencerInstagramInformation, date):
+        fields_media = [
+            str(field).split(".")[-1]
+            for field in InstagramMediaData._meta.get_fields()[2:]
+        ]
+
+        fields_comment = [
+            str(field).split(".")[-1]
+            for field in InstagramMediaComment._meta.get_fields()[2:]
+        ]
+
+        fields_media.remove("media_id")
+        fields_media.remove("date")
+
+        print(f"Fields Media: {fields_media}")
+
+        fields_comment.remove("media_id")
+        fields_comment.remove("comment_id")
+        fields_comment.remove("date")
+
+        access_token = influencerInstagramInformation.long_access_token
+
+        facebookApiRequest = requests.get(
+            f"https://graph.facebook.com/v18.0/{influencerInstagramInformation.instagram_id}/media?access_token={access_token}"
+        )
+
+        for media in facebookApiRequest.json()["data"]:
+            facebookApiRequestField = requests.get(
+                f'https://graph.facebook.com/v18.0/{media["id"]}?fields=media_url,caption,id,timestamp,is_comment_enabled,is_shared_to_feed,like_count,media_product_type,media_type,thumbnail_url,comments_count&access_token={access_token}'
+            )
+
+            facebookApiRequestComment = requests.get(
+                f'https://graph.facebook.com/v18.0/{media["id"]}/comments?access_token={access_token}'
+            )
+
+            if facebookApiRequestField.json()["media_type"] == "REELS":
+                facebookApiRequestInsight = requests.get(
+                    f'https://graph.facebook.com/v18.0/{media["id"]}/insights?metric=impressions,shares,reach,saved,video_views,total_interactions,profile_activity,profile_visits,ig_reels_avg_watch_time,ig_reels_video_view_total_time,plays&access_token={access_token}'
+                )
+            else:
+                facebookApiRequestInsight = requests.get(
+                    f'https://graph.facebook.com/v18.0/{media["id"]}/insights?metric=impressions,reach,shares,saved,video_views,total_interactions,profile_activity,profile_visits&access_token={access_token}'
+                )
+
+            if (
+                "error" in facebookApiRequestInsight.json()
+                or "error" in facebookApiRequestField.json()
+            ):
+                continue
+            
+            extractedInsight = {
+                item["name"]: item["values"][0]["value"]
+                for item in facebookApiRequestInsight.json()["data"]
+            }
+            combinedData = {**dict(facebookApiRequestField.json()), **extractedInsight}
+            update_fields = {}
+            for field in fields_media:
+                if field in combinedData:
+                    print(f"Field: {field} : {combinedData[field]}")
+                    update_fields[field] = combinedData[field]
+                else:
+                    if field != 'instagrammediacomment>':
+                        print(f"Field: {field} : None")
+                        update_fields[field] = None
+
+            instagramMediaData, created = InstagramMediaData.objects.update_or_create(
+                influencer_instagram_information=influencerInstagramInformation,
+                date=date,
+                media_id=media["id"],
+                defaults=update_fields
+            )
+
+            # instagramMediaData, created = InstagramMediaData.objects.get_or_create(
+            #     influencer_instagram_information=influencerInstagramInformation,
+            #     date=date,
+            #     media_id=media["id"],
+            # )
+
+            
+
+            # extractedInsight = {
+            #     item["name"]: item["values"][0]["value"]
+            #     for item in facebookApiRequestInsight.json()["data"]
+            # }
+            # combinedData = {**dict(facebookApiRequestField.json()), **extractedInsight}
+
+            # for field in fields_media:
+            #     if field in combinedData:  
+            #         setattr(instagramMediaData, field, combinedData[field])
+            #     else:
+            #         setattr(instagramMediaData, field, None)
+
+            # instagramMediaData.save()
+            
+            
+
+            for comment in facebookApiRequestComment.json()["data"]:
+                facebookApiRequestCommentInsight = requests.get(
+                    f'https://graph.facebook.com/v18.0/{comment["id"]}?fields=id,timestamp,text,parent_id,like_count,hidden,username,user&access_token={access_token}'
+                )
+                instagramMediaComment, _ = InstagramMediaComment.objects.get_or_create(
+                    media_id=instagramMediaData,
+                    influencer_instagram_information=influencerInstagramInformation,
+                    date=date,
+                    comment_id=comment["id"],
+                )
+
+                for field in fields_comment:
+                    if field in facebookApiRequestCommentInsight.json():
+                        setattr(
+                            instagramMediaComment,
+                            field,
+                            facebookApiRequestCommentInsight.json()[field],
+                        )
+                    else:
+                        setattr(instagramMediaComment, field, None)
+                instagramMediaComment.save()
+
+                print(f"Comment: {comment}")

@@ -1,40 +1,114 @@
 from django.shortcuts import render
-from .serializers import RegisterSerializer, InfluencerRegisterSerializer, InfluencerInstagramInformationSerializer, BaseServiceSerializer, UGCServiceSerializer, FeedPostServiceSerializer, StoryPostServiceSerializer, ReelPostServiceSerializer, OtherServiceSerializer, UGCServiceGetSerializer, FeedPostServiceGetSerializer, StoryPostServiceGetSerializer, ReelPostServiceGetSerializer, OtherServiceGetSerializer   
+from .serializers import (
+    RegisterSerializer,
+    InfluencerAccountSerializer,
+    InfluencerRegisterSerializer,
+    InfluencerInstagramInformationSerializer,
+    BaseServiceSerializer,
+    UGCServiceSerializer,
+    FeedPostServiceSerializer,
+    StoryPostServiceSerializer,
+    ReelPostServiceSerializer,
+    OtherServiceSerializer,
+    UGCServiceGetSerializer,
+    FeedPostServiceGetSerializer,
+    StoryPostServiceGetSerializer,
+    ReelPostServiceGetSerializer,
+    OtherServiceGetSerializer,
+    InstagramDetailsSerializer,
+    InstagramMediaDataSerializer,
+    InstagramAgeDemographicsSerializer,
+    InstagramGenderDemographicsSerializer,
+    InstagramCityDemographicsSerializer,
+    InstagramCountryDemographicsSerializer,
+    InstagramInformationSerializer,
+    ContractCreateSerializer,
+    ContractSerializer,
+    ContractVersionCreateSerializer,
+    ContractVersionSerializer,
+    ContractVersionTextUpdateSerializer,
+)
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated 
+from rest_framework.permissions import IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.models import User
-from .models import InfluencerAccount, InfluencerInstagramInformation, UGCService, FeedPostService, StoryPostService, ReelPostService, OtherService
+from .models import (
+    InfluencerAccount,
+    BusinessAccount,
+    InfluencerInstagramInformation,
+    UGCService,
+    FeedPostService,
+    StoryPostService,
+    ReelPostService,
+    OtherService,
+    InstagramDetails,
+    InstagramMediaData,
+    InstagramAgeDemographics,
+    InstagramGenderDemographics,
+    InstagramCityDemographics,
+    InstagramCountryDemographics,
+    InstagramInitialInformation,
+    InstagramDetails,
+    Contract,
+    ContractVersion,
+    ContractUserPermissions,
+    ContractVersionUserPermissions,
+)
+from django_filters.rest_framework import DjangoFilterBackend
+from .filters import InfluencerFilter
+from rest_framework import viewsets
+from rest_framework.filters import OrderingFilter
+from django.db.models import Max
+from rest_framework import generics
+from django.http import JsonResponse
+from django.core.serializers import serialize
+from django.db.models import OuterRef, Subquery, F
+from django.db.models import Q, Exists, OuterRef
+from django.db.models.functions import Coalesce
+from django.forms.models import model_to_dict
+from django_countries.fields import Country
+from datetime import datetime
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 def businessRegister(request):
     serializer = RegisterSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
-        tokens = {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token)
-        }
+        tokens = {"refresh": str(refresh), "access": str(refresh.access_token)}
         return Response(tokens, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 def influencerRegister(request):
     serializer = InfluencerRegisterSerializer(data=request.data)
     if serializer.is_valid():
         user = serializer.save()
         refresh = RefreshToken.for_user(user)
-        tokens = {
-            'refresh': str(refresh),
-            'access': str(refresh.access_token)
-        }
+        tokens = {"refresh": str(refresh), "access": str(refresh.access_token)}
         return Response(tokens, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['POST'])
+@api_view(["GET"])
+def accountType(request):
+    username = request.GET.get("username")
+    user = User.objects.get(username=username)
+    
+    print(InfluencerAccount.objects.filter(user=user))
+    print(BusinessAccount.objects.filter(user=user))
+    print(InfluencerAccount.objects.filter(user=user).exists())
+    print(BusinessAccount.objects.filter(user=user).exists())
+    if InfluencerAccount.objects.filter(user=user).exists():
+        return Response({"accountType": "influencer"})
+    elif BusinessAccount.objects.filter(user=user).exists():
+        return Response({"accountType": "business"})
+    return Response({"account_type": "none"})
+
+@api_view(["POST"])
 def influencerInstagramInformationAdd(request):
     serializer = InfluencerInstagramInformationSerializer(data=request.data)
     if serializer.is_valid():
@@ -42,17 +116,22 @@ def influencerInstagramInformationAdd(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def influencerInstagramInformationGet(request):
     user = User.objects.get(username=request.user)
     influencerAccount = InfluencerAccount.objects.get(user=user)
-    influencerInstagramInformation = InfluencerInstagramInformation.objects.filter(influencer=influencerAccount)
-    serializer = InfluencerInstagramInformationSerializer(influencerInstagramInformation, many=True)
-    return Response({'accounts_info': serializer.data})
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.filter(
+        influencer=influencerAccount
+    )
+    serializer = InfluencerInstagramInformationSerializer(
+        influencerInstagramInformation, many=True
+    )
+    return Response({"accounts_info": serializer.data})
 
 
-@api_view(['POST'])
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def UGCServiceAdd(request):
     print(request.data)
@@ -62,16 +141,20 @@ def UGCServiceAdd(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def UGCServiceGet(request):
     user = User.objects.get(username=request.user)
     influencerAccount = InfluencerAccount.objects.get(user=user)
-    ugcService = UGCService.objects.filter(instagram_information__influencer=influencerAccount)
+    ugcService = UGCService.objects.filter(
+        instagram_information__influencer=influencerAccount
+    )
     serializer = UGCServiceGetSerializer(ugcService, many=True)
-    return Response({'ugc_services': serializer.data})
+    return Response({"ugc_services": serializer.data})
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def FeedPostServiceAdd(request):
     serializer = FeedPostServiceSerializer(data=request.data)
@@ -80,16 +163,20 @@ def FeedPostServiceAdd(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def FeedPostServiceGet(request):
     user = User.objects.get(username=request.user)
     influencerAccount = InfluencerAccount.objects.get(user=user)
-    feedPostService = FeedPostService.objects.filter(instagram_information__influencer=influencerAccount)
+    feedPostService = FeedPostService.objects.filter(
+        instagram_information__influencer=influencerAccount
+    )
     serializer = FeedPostServiceGetSerializer(feedPostService, many=True)
-    return Response({'feed_services': serializer.data})
+    return Response({"feed_services": serializer.data})
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def StoryPostServiceAdd(request):
     serializer = StoryPostServiceSerializer(data=request.data)
@@ -98,16 +185,20 @@ def StoryPostServiceAdd(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def StoryPostServiceGet(request):
     user = User.objects.get(username=request.user)
     influencerAccount = InfluencerAccount.objects.get(user=user)
-    storyPostService = StoryPostService.objects.filter(instagram_information__influencer=influencerAccount)
+    storyPostService = StoryPostService.objects.filter(
+        instagram_information__influencer=influencerAccount
+    )
     serializer = StoryPostServiceGetSerializer(storyPostService, many=True)
-    return Response({'story_services': serializer.data})
+    return Response({"story_services": serializer.data})
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def ReelPostServiceAdd(request):
     serializer = ReelPostServiceSerializer(data=request.data)
@@ -116,16 +207,20 @@ def ReelPostServiceAdd(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def ReelPostServiceGet(request):
     user = User.objects.get(username=request.user)
     influencerAccount = InfluencerAccount.objects.get(user=user)
-    reelPostService = ReelPostService.objects.filter(instagram_information__influencer=influencerAccount)
+    reelPostService = ReelPostService.objects.filter(
+        instagram_information__influencer=influencerAccount
+    )
     serializer = ReelPostServiceGetSerializer(reelPostService, many=True)
-    return Response({'reel_services': serializer.data})
+    return Response({"reel_services": serializer.data})
 
-@api_view(['POST'])
+
+@api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def OtherServiceAdd(request):
     serializer = OtherServiceSerializer(data=request.data)
@@ -134,16 +229,321 @@ def OtherServiceAdd(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-@api_view(['GET'])
+
+@api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def OtherServiceGet(request):
     user = User.objects.get(username=request.user)
     influencerAccount = InfluencerAccount.objects.get(user=user)
-    otherService = OtherService.objects.filter(instagram_information__influencer=influencerAccount)
+    otherService = OtherService.objects.filter(
+        instagram_information__influencer=influencerAccount
+    )
     serializer = OtherServiceGetSerializer(otherService, many=True)
-    return Response({'other_services': serializer.data})
+    return Response({"other_services": serializer.data})
 
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def InstagramDetailsGet(request):
+    print(request.GET)
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
+        instagram_id=request.GET["instagram_id"]
+    )
+    instagramDetails = InstagramDetails.objects.filter(
+        influencer_instagram_information=influencerInstagramInformation
+    )
+    serializer = InstagramDetailsSerializer(instagramDetails, many=True)
+    return Response({"instagram_details": serializer.data})
 
-    
 
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def InstagramMediaDataGet(request):
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
+        instagram_id=request.GET["instagram_id"]
+    )
+    instagramMediaData = InstagramMediaData.objects.filter(
+        influencer_instagram_information=influencerInstagramInformation
+    )
+    serializer = InstagramMediaDataSerializer(instagramMediaData, many=True)
+    return Response({"instagram_media_data": serializer.data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def InstagramAgeDemographicsGet(request):
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
+        instagram_id=request.GET["instagram_id"]
+    )
+    instagramAgeDemographics = InstagramAgeDemographics.objects.filter(
+        influencer_instagram_information=influencerInstagramInformation
+    )
+    serializer = InstagramAgeDemographicsSerializer(instagramAgeDemographics, many=True)
+    return Response({"instagram_age_demographics": serializer.data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def InstagramGenderDemographicsGet(request):
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
+        instagram_id=request.GET["instagram_id"]
+    )
+    instagramGenderDemographics = InstagramGenderDemographics.objects.filter(
+        influencer_instagram_information=influencerInstagramInformation
+    )
+    serializer = InstagramGenderDemographicsSerializer(
+        instagramGenderDemographics, many=True
+    )
+    return Response({"instagram_gender_demographics": serializer.data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def InstagramCityDemographicsGet(request):
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
+        instagram_id=request.GET["instagram_id"]
+    )
+    instagramCityDemographics = InstagramCityDemographics.objects.filter(
+        influencer_instagram_information=influencerInstagramInformation
+    )
+    serializer = InstagramCityDemographicsSerializer(
+        instagramCityDemographics, many=True
+    )
+    return Response({"instagram_city_demographics": serializer.data})
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def InstagramCountryDemographicsGet(request):
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
+        instagram_id=request.GET["instagram_id"]
+    )
+    instagramCountryDemographics = InstagramCountryDemographics.objects.filter(
+        influencer_instagram_information=influencerInstagramInformation
+    )
+    serializer = InstagramCountryDemographicsSerializer(
+        instagramCountryDemographics, many=True
+    )
+    return Response({"instagram_country_demographics": serializer.data})
+
+
+def valid_query_param(param):
+    return param != "" and param is not None
+
+
+def convert_datetime(dt):
+    return dt.isoformat() if isinstance(dt, datetime) else dt
+
+
+def convert_country(country):
+    print(f"country entered: {country}")
+    return str(country) if isinstance(country, Country) else country
+
+
+# @api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+def InstagramFilterView(request):
+    queryset = filter_influencers(location="Philadelphia", followers=100)
+
+    #  {"influencer": 2, "instagram_id": "17841439310660818", "long_access_token": "EAANjVrzUSWkBO68AmxkC65NU7lVXzhlaoQHrNZApRjuTiaCQZBZBIDuoCS0cUPljLAUSYMSV3UUAHlyQ2IvBOg0eqcQb4K7tpTzH17IHvo6wQw6keoxuXgGKSiIfbFKlmsGp7fccF4m4OFkCAljQZBhrA65rabw7JUA0a1w3AmY5FLDN7L4rXcdAd3vfqCPN"}}]
+    response = []
+    responseDict = {}
+    for influencer in queryset:
+        responseDict["influencer"] = influencer.influencer.id
+        responseDict["instagram_id"] = influencer.instagram_id
+
+        instagramInitialInformation = (
+            InstagramInitialInformation.objects.filter(
+                influencer_instagram_information=influencer
+            )
+            .order_by("-date")
+            .first()
+        )
+        if instagramInitialInformation:
+            responseDict["instagram_initial_information"] = model_to_dict(
+                instagramInitialInformation
+            )
+
+        instagramCountryDemographics = (
+            InstagramCountryDemographics.objects.filter(
+                influencer_instagram_information=influencer
+            )
+            .order_by("-this_week_follower_count")
+            .first()
+        )
+        if instagramCountryDemographics:
+            country_demographics = model_to_dict(instagramCountryDemographics)
+            # Convert Country and datetime objects
+            for key, value in country_demographics.items():
+                country_demographics[key] = convert_country(convert_datetime(value))
+            responseDict["instagram_country_demographics"] = country_demographics
+
+        response.append(responseDict)
+        responseDict = {}
+
+    return JsonResponse(response, safe=False)
+
+
+def filter_influencers(
+    name=None, username=None, followers=None, price=None, location=None
+):
+    queryset = InfluencerInstagramInformation.objects.all()
+
+    # Filter by name from User model
+    if name:
+        queryset = queryset.filter(influencer__user__name__icontains=name)
+
+    # Filter by username from InstagramInitialInformation
+    if username:
+        username_subquery = (
+            InstagramInitialInformation.objects.filter(
+                influencer_instagram_information=OuterRef("pk"),
+                username__icontains=username,
+            )
+            .order_by("-date")
+            .values("pk")[:1]
+        )
+
+        queryset = queryset.filter(Exists(username_subquery))
+        queryset = queryset.annotate(
+            latest_username_date=Subquery(username_subquery.values("date"))
+        ).order_by("-latest_username_date")
+
+    # Filter by followers from InstagramInitialInformation
+    if followers:
+        latest_followers_subquery = (
+            InstagramInitialInformation.objects.filter(
+                influencer_instagram_information=OuterRef("pk")
+            )
+            .order_by("-date")
+            .values("followers_count")[:1]
+        )
+
+        queryset = queryset.annotate(
+            latest_followers=Subquery(latest_followers_subquery)
+        ).filter(latest_followers__gte=followers)
+
+    # Filter by price from Services model
+    if price:
+        queryset = queryset.filter(
+            Exists(
+                Services.objects.filter(
+                    influencer__influencerinstagraminformation=OuterRef("pk"),
+                    price__lte=price,
+                )
+            )
+        )
+
+    # Filter by Audience Location (City or Country)
+    if location:
+        city_subquery = (
+            InstagramCityDemographics.objects.filter(
+                influencer_instagram_information=OuterRef("pk"),
+                this_week_city__icontains=location,
+            )
+            .order_by("-this_week_follower_count")
+            .values("pk")[:1]
+        )
+
+        country_subquery = (
+            InstagramCountryDemographics.objects.filter(
+                influencer_instagram_information=OuterRef("pk"),
+                this_week_country__icontains=location,
+            )
+            .order_by("-this_week_follower_count")
+            .values("pk")[:1]
+        )
+
+        queryset = queryset.filter(
+            Q(Exists(city_subquery)) | Q(Exists(country_subquery))
+        )
+        queryset = queryset.annotate(
+            location_followers=Coalesce(
+                Subquery(city_subquery.values("this_week_follower_count")),
+                Subquery(country_subquery.values("this_week_follower_count")),
+                0,
+            )
+        ).order_by("-location_followers")
+
+    return queryset
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def createContract(request):
+    serializer = ContractCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def getContractAll(request):
+    try:
+        contract = Contract.objects.all()
+        serializer = ContractSerializer(contract, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Contract.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def getContract(request):
+    try:
+        contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
+        serializer = ContractSerializer(contract)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Contract.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+def createNewVersion(request):
+    print("request data: ", request.data)
+    serializer = ContractVersionCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def getContractVersions(request):
+    contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
+    contractVersions = ContractVersion.objects.filter(contract=contract)
+    serializer = ContractVersionSerializer(contractVersions, many=True)
+
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def getContractVersionText(request):
+    contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
+    contractVersion = ContractVersion.objects.get(
+        contract=contract, contract_version=request.GET.get("version_id")
+    )
+    print(f"Contract Version: {contractVersion}")
+    serializer = ContractVersionSerializer(contractVersion)
+
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def updateContractVersionText(request):
+    contract = Contract.objects.get(contract_id=request.data.get("contract_id"))
+    contractVersion = ContractVersion.objects.get(
+        contract=contract, contract_version=request.data.get("version_id")
+    )
+    serializer = ContractVersionTextUpdateSerializer(contractVersion, data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

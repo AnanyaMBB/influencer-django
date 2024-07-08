@@ -1,5 +1,29 @@
 from django.contrib import admin
-from .models import BusinessAccount, InfluencerAccount, InfluencerInstagramInformation, BaseService, UGCService, FeedPostService, StoryPostService, ReelPostService, OtherService
+from .models import (
+    BusinessAccount,
+    InfluencerAccount,
+    InfluencerInstagramInformation,
+    BaseService,
+    UGCService,
+    FeedPostService,
+    StoryPostService,
+    ReelPostService,
+    OtherService,
+    InstagramBase,
+    InstagramInitialInformation,
+    InstagramDetails,
+    InstagramGenderDemographics,
+    InstagramAgeDemographics,
+    InstagramCityDemographics,
+    InstagramCountryDemographics,
+    InstagramMediaData, 
+    InstagramMediaComment, 
+    Contract, 
+    ContractVersion, 
+    ContractUserPermissions,
+    ContractVersionUserPermissions,
+)
+
 # Register your models here.
 admin.site.register(BusinessAccount)
 admin.site.register(InfluencerAccount)
@@ -10,3 +34,17 @@ admin.site.register(FeedPostService)
 admin.site.register(StoryPostService)
 admin.site.register(ReelPostService)
 admin.site.register(OtherService)
+admin.site.register(InstagramInitialInformation)
+admin.site.register(InstagramDetails)
+admin.site.register(InstagramGenderDemographics)
+admin.site.register(InstagramAgeDemographics)
+admin.site.register(InstagramCityDemographics)
+admin.site.register(InstagramCountryDemographics)
+admin.site.register(InstagramMediaData)
+admin.site.register(InstagramMediaComment)
+admin.site.register(InstagramBase)
+admin.site.register(Contract)
+admin.site.register(ContractVersion)
+admin.site.register(ContractUserPermissions)
+admin.site.register(ContractVersionUserPermissions)
+

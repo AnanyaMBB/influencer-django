@@ -1,8 +1,12 @@
 from django.db import models
-from django.contrib.auth.models import User 
+from django.contrib.auth.models import User
 from django.db.models import JSONField
 from django_countries.fields import CountryField
-from datetime import datetime 
+from datetime import datetime
+from django.dispatch import receiver
+from django.db.models.signals import post_save, post_delete
+import marqo
+
 
 class BusinessAccount(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -12,25 +16,31 @@ class BusinessAccount(models.Model):
     company_size = models.IntegerField(null=True, blank=True)
     company_email = models.CharField(max_length=100, null=True, blank=True)
     company_address = models.CharField(max_length=100, null=True, blank=True)
-    company_phone = models.CharField(max_length=100, null=True, blank=True)    
+    company_phone = models.CharField(max_length=100, null=True, blank=True)
     company_city = models.CharField(max_length=100, null=True, blank=True)
     company_state = models.CharField(max_length=100, null=True, blank=True)
     company_zip = models.CharField(max_length=100, null=True, blank=True)
     company_country = models.CharField(max_length=100, null=True, blank=True)
 
+
 class InfluencerAccount(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
+
 
 class InfluencerInstagramInformation(models.Model):
     influencer = models.ForeignKey(InfluencerAccount, on_delete=models.CASCADE)
     instagram_id = models.CharField(unique=True, max_length=100, null=True, blank=True)
     long_access_token = models.CharField(max_length=300, null=True, blank=True)
 
-class InstagramBase(models.Model):
-    influencer_instagram_information = models.ForeignKey(InfluencerInstagramInformation, on_delete=models.CASCADE)
-    date = models.DateTimeField(auto_now_add=True)
 
-class InstagramInitialInformation(InstagramBase): 
+class InstagramBase(models.Model):
+    influencer_instagram_information = models.ForeignKey(
+        InfluencerInstagramInformation, on_delete=models.CASCADE
+    )
+    date = models.DateTimeField(default=datetime.now, null=True, blank=True)
+
+
+class InstagramInitialInformation(InstagramBase):
     name = models.CharField(max_length=100, null=True, blank=True)
     username = models.CharField(max_length=100, null=True, blank=True)
     profile_picture_url = models.CharField(max_length=1000, null=True, blank=True)
@@ -38,12 +48,13 @@ class InstagramInitialInformation(InstagramBase):
     followers_count = models.IntegerField(null=True, blank=True)
     follows_count = models.IntegerField(null=True, blank=True)
     media_count = models.IntegerField(null=True, blank=True)
-    website=models.CharField(max_length=1000, null=True, blank=True)
+    website = models.CharField(max_length=1000, null=True, blank=True)
+
 
 class InstagramDetails(InstagramBase):
     likes = models.IntegerField(null=True, blank=True)
     comments = models.IntegerField(null=True, blank=True)
-    saved = models.IntegerField(null=True, blank=True)
+    saves = models.IntegerField(null=True, blank=True)
     shares = models.IntegerField(null=True, blank=True)
     replies = models.IntegerField(null=True, blank=True)
     profile_links_taps = models.IntegerField(null=True, blank=True)
@@ -53,6 +64,7 @@ class InstagramDetails(InstagramBase):
     reach = models.IntegerField(null=True, blank=True)
     total_interactions = models.IntegerField(null=True, blank=True)
     accounts_engaged = models.IntegerField(null=True, blank=True)
+
 
 class InstagramGenderDemographics(InstagramBase):
     type_identifier = models.IntegerField(null=True, blank=True)
@@ -133,7 +145,8 @@ class InstagramAgeDemographics(InstagramBase):
     last_90_days_55_64 = models.IntegerField(null=True, blank=True)
     last_90_days_65 = models.IntegerField(null=True, blank=True)
 
-class InstagramCityDemographics(InstagramBase): 
+
+class InstagramCityDemographics(InstagramBase):
     count = models.IntegerField(null=True, blank=True)
     type_identifier = models.IntegerField(null=True, blank=True)
 
@@ -154,6 +167,7 @@ class InstagramCityDemographics(InstagramBase):
 
     last_90_days_city = models.CharField(max_length=100, null=True, blank=True)
     last_90_days_follower_count = models.IntegerField(null=True, blank=True)
+
 
 class InstagramCountryDemographics(InstagramBase):
     count = models.IntegerField(null=True, blank=True)
@@ -177,16 +191,18 @@ class InstagramCountryDemographics(InstagramBase):
     last_90_days_country = CountryField(max_length=100, null=True, blank=True)
     last_90_days_follower_count = models.IntegerField(null=True, blank=True)
 
+
 class InstagramMediaData(InstagramBase):
     caption = models.CharField(max_length=1000, null=True, blank=True)
     media_id = models.CharField(max_length=100, null=True, blank=True)
+    media_url = models.CharField(max_length=1000, null=True, blank=True)
     timestamp = models.DateTimeField(null=True, blank=True)
     like_count = models.IntegerField(null=True, blank=True)
-    comment_count = models.IntegerField(null=True, blank=True)
-    saved_count = models.IntegerField(null=True, blank=True)
-    shares_count = models.IntegerField(null=True, blank=True)
-    is_comment_enabled = models.BooleanField(default=False)
-    is_share_to_feed = models.BooleanField(default=False)
+    comments_count = models.IntegerField(null=True, blank=True)
+    saved = models.IntegerField(null=True, blank=True)
+    shares = models.IntegerField(null=True, blank=True)
+    is_comment_enabled = models.CharField(max_length=10, null=True, blank=True)
+    is_share_to_feed = models.CharField(max_length=10, null=True, blank=True)
     media_product_type = models.CharField(max_length=100, null=True, blank=True)
     media_type = models.CharField(max_length=100, null=True, blank=True)
     thumbnail_url = models.CharField(max_length=1000, null=True, blank=True)
@@ -201,34 +217,79 @@ class InstagramMediaData(InstagramBase):
     profile_activity = models.IntegerField(null=True, blank=True)
     profile_visits = models.IntegerField(null=True, blank=True)
 
+
+@receiver(post_save, sender=InstagramMediaData)
+def update_media_data(sender, instance, created, **kwargs):
+    mq = marqo.Client(url="http://localhost:8882")
+    if created:
+        mq.index("instagram_media_data").add_documents(
+            [
+                {
+                    "id": instance.id,
+                    "media_id": instance.media_id,
+                    "media_type": instance.media_type,
+                    "media_product_type": instance.media_product_type,
+                    "caption": instance.caption,
+                    "media": instance.media_url,
+                }
+            ]
+        )
+
+    else:
+        mq.index("instagram_media_data").update_documents(
+            [
+                {
+                    "id": instance.id,
+                    "media_id": instance.media_id,
+                    "media_type": instance.media_type,
+                    "media_product_type": instance.media_product_type,
+                    "caption": instance.caption,
+                    "media": instance.media_url,
+                }
+            ]
+        )
+
+
+def delete_video_index(sender, instance, **kwargs):
+    mq = marqo.Client(url="http://localhost:8882")
+    mq.index("instagram_media_data").delete_documents([instance.id])
+
+
 class InstagramMediaComment(InstagramBase):
     media_id = models.ForeignKey(InstagramMediaData, on_delete=models.CASCADE)
     comment_id = models.CharField(max_length=100, null=True, blank=True)
     timestamp = models.DateTimeField(default=datetime.now, null=True, blank=True)
     text = models.CharField(max_length=1000, null=True, blank=True)
     parent_id = models.IntegerField(null=True, blank=True)
-    comment_user = models.CharField(max_length=100, null=True, blank=True)
+    user = models.CharField(max_length=100, null=True, blank=True)
+    username = models.CharField(max_length=100, null=True, blank=True)
     # comment_username = models.CharField(max_length=100, null=True, blank=True)
     like_count = models.IntegerField(null=True, blank=True)
-    hidden = models.BooleanField(default=False)
+    hidden = models.CharField(max_length=10, null=True, blank=True)
 
 
 class BaseService(models.Model):
-    instagram_information = models.ForeignKey(InfluencerInstagramInformation, on_delete=models.CASCADE)
+    instagram_information = models.ForeignKey(
+        InfluencerInstagramInformation, on_delete=models.CASCADE
+    )
     service_name = models.CharField(max_length=100, null=True, blank=True)
     service_description = models.CharField(max_length=100, null=True, blank=True)
     post_type = models.CharField(max_length=100, null=True, blank=True)
     post_length = models.IntegerField(null=True, blank=True)
     post_length_applicable = models.BooleanField(default=False)
 
+
 class UGCService(BaseService):
     post_price = models.FloatField(null=True, blank=True)
+
 
 class FeedPostService(BaseService):
     post_price_per_hour = models.FloatField(null=True, blank=True)
 
+
 class StoryPostService(BaseService):
-    post_price_per_hour = models.FloatField(null=True, blank=True)  
+    post_price_per_hour = models.FloatField(null=True, blank=True)
+
 
 class ReelPostService(BaseService):
     post_price_per_hour = models.FloatField(null=True, blank=True)
@@ -237,7 +298,6 @@ class ReelPostService(BaseService):
 class OtherService(BaseService):
     custom_fields = JSONField(default=dict, blank=True, null=True)
     price = models.FloatField(null=True, blank=True)
-
 
 
 # {
@@ -250,3 +310,47 @@ class OtherService(BaseService):
 # "company_name":"jdfkjfkd"
 # }
 # }
+
+
+class Contract(models.Model):
+    contract_id = models.AutoField(primary_key=True)
+    contract_name = models.CharField(max_length=100, null=True, blank=True)
+    business = models.ForeignKey(BusinessAccount, on_delete=models.CASCADE)
+    influencer = models.ForeignKey(InfluencerAccount, on_delete=models.CASCADE)
+    contract_date = models.DateTimeField(default=datetime.now, null=True, blank=True)
+
+class ContractVersion(models.Model):
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
+    contract_version = models.IntegerField()
+    contract_text = models.TextField(null=True, blank=True)
+    contract_date = models.DateTimeField(default=datetime.now, null=True, blank=True)
+    contract_visible = models.BooleanField(default=False)
+    owner = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_influencer = models.BooleanField(default=False)
+
+    class Meta: 
+        unique_together = ('contract', 'contract_version')
+    
+    def save(self, *args, **kwargs): 
+        if self.pk is None: 
+            last_version = ContractVersion.objects.filter(contract=self.contract).order_by('contract_version').last()
+            if last_version: 
+                self.contract_version = last_version.contract_version + 1
+            else: 
+                self.contract_version = 1
+        super().save(*args, **kwargs)
+
+class ContractUserPermissions(models.Model):
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    read = models.BooleanField(default=False)
+    write = models.BooleanField(default=False)
+    user_add_date_time = models.DateTimeField(default=datetime.now, null=True, blank=True)
+
+class ContractVersionUserPermissions(models.Model):
+    contract_version = models.ForeignKey(ContractVersion, on_delete=models.CASCADE)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    read = models.BooleanField(default=False)
+    write = models.BooleanField(default=False)
+
+    

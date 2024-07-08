@@ -37,6 +37,7 @@ SIMPLE_JWT = {
 # Application definition
 
 INSTALLED_APPS = [
+    'django_filters',
     'corsheaders',
     'rest_framework',
     'core.apps.CoreConfig',
@@ -61,10 +62,11 @@ MIDDLEWARE = [
 ]
 
 REST_FRAMEWORK = {
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',)
 }
 
-CORS_ALLOWED_ORIGINS = ['http://localhost:3000', 'https://361e3dbcf910367999535abb1896389c.loophole.site', 'https://4b87fdd3364da9d7d6a96493295368ee.loophole.site']
+CORS_ALLOWED_ORIGINS = ['http://localhost:3000', 'https://361e3dbcf910367999535abb1896389c.loophole.site', 'https://4b87fdd3364da9d7d6a96493295368ee.loophole.site', 'https://b45687c8aa5886450c22f9186cf29f43.loophole.site', 'https://93c301590d5dd7f37ad0e33c7f196edf.loophole.site']
 
 ROOT_URLCONF = 'influencerBackend.urls'
 

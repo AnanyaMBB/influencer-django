@@ -1,0 +1,20 @@
+def InstagramFilterView(request):
+
+    # queryset = InfluencerAccount.objects.annotate(
+    #     has_required_followers=Exists(
+    #         InstagramInitialInformation.objects.filter(
+    #             influencer_instagram_information__influencer=OuterRef("pk"),
+    #             followers_count__gte=100,
+    #         )
+    #     ),
+    #     has_required_likes=Exists(
+    #         InstagramDetails.objects.filter(
+    #             pk_instagram_information__influencer=OuterRef("pk"),
+    #             likes__gte=100,
+    #         )
+    #     ),
+    # ).filter(has_required_followers=True, has_required_likes=True)
+    queryset = filter_influencers(location="Philadelphia", followers=100)
+    data = serialize("json", queryset)
+    print(data)
+    return JsonResponse(data, safe=False)
