@@ -23,6 +23,8 @@ from .models import (
     ContractVersion,
     ContractUserPermissions,
     ContractVersionUserPermissions,
+    SignatureRequests,
+    Files,
 )
 
 from django.utils import timezone
@@ -307,7 +309,7 @@ class InstagramMediaCommentSerializer(serializers.ModelSerializer):
 
 
 class ContractCreateSerializer(serializers.ModelSerializer):
-    influencer = serializers.CharField(write_only=True)    
+    influencer = serializers.CharField(write_only=True)
     business = serializers.CharField(write_only=True)
     isInfluencer = serializers.BooleanField(write_only=True)
 
@@ -363,11 +365,12 @@ class ContractSerializer(serializers.ModelSerializer):
         ret = super().to_representation(instance)
 
         business = BusinessAccount.objects.get(id=ret["business"])
-        ret['business'] = business.user.username
+        ret["business"] = business.user.username
         influencer = InfluencerAccount.objects.get(id=ret["influencer"])
-        ret['influencer'] = influencer.user.username
+        ret["influencer"] = influencer.user.username
 
-        return ret   
+        return ret
+
 
 class ContractVersionCreateSerializer(serializers.ModelSerializer):
     contract_id = serializers.CharField(write_only=True)
@@ -383,7 +386,9 @@ class ContractVersionCreateSerializer(serializers.ModelSerializer):
         validated_data.pop("contract_id")
         user = User.objects.get(username=validated_data["username"])
         validated_data.pop("username")
-        return ContractVersion.objects.create(contract=contract, owner=user, **validated_data)
+        return ContractVersion.objects.create(
+            contract=contract, owner=user, **validated_data
+        )
 
 
 class ContractVersionSerializer(serializers.ModelSerializer):
@@ -402,4 +407,149 @@ class ContractVersionTextUpdateSerializer(serializers.ModelSerializer):
             "contract_text", instance.contract_text
         )
         instance.save()
-        return instance 
+        return instance
+
+
+class SignatureRequestsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SignatureRequests
+        fields = "__all__"
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+
+        user = User.objects.get(id=ret["request_user"])
+        ret["request_user"] = user.username
+
+        contract = Contract.objects.get(contract_id=ret["contract"])
+        instagramInitialInformation = InstagramInitialInformation.objects.get(
+            influencer_instagram_information=contract.influencerInstagramInformation
+        )
+        ret["influencer"] = instagramInitialInformation.username
+
+        ret["business"] = contract.business.company_name
+
+        if ret["file"] != None:
+            file = Files.objects.get(id=ret["file"])
+            ret["file_name"] = file.file_name 
+            ret["file_size"] = file.file_size
+            ret["file_date"] = file.file_date
+        else: 
+            ret["file_name"] = None
+            ret["file_size"] = None
+            ret["file_date"] = None
+
+        return ret
+
+
+class SignatureRequestsCreateSerializer(serializers.ModelSerializer):
+    # file_id = serializers.CharField(write_only=True)
+    contract_id = serializers.CharField(write_only=True)
+    version_id = serializers.CharField(write_only=True)
+    username = serializers.CharField(write_only=True)
+
+    class Meta:
+        model = SignatureRequests
+        # fields = "__all__"
+        exclude = ["contract", "contract_version", "request_user"]
+
+    def create(self, validated_data):
+        contract = Contract.objects.get(contract_id=validated_data["contract_id"])
+        validated_data.pop("contract_id")
+        version = ContractVersion.objects.get(
+            contract=contract, contract_version=validated_data["version_id"]
+        )
+        validated_data.pop("version_id")
+        user = User.objects.get(username=validated_data["username"])
+        validated_data.pop("username")
+        # file = Files.objects.get(id=validated_data["file_id"])
+        # validated_data.pop("file_id")
+        return SignatureRequests.objects.create(
+            contract=contract,
+            contract_version=version,
+            request_user=user,  
+            # file=file,
+            **validated_data
+        )
+
+
+class FileSerializer(serializers.ModelSerializer):
+    selected = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Files
+        fields = ["id", "file", "file_name", "file_date", "file_size", "selected"]
+
+    def get_selected(self, obj):
+        user = self.context.get('request_user')
+    
+        contract = self.context.get('contract')
+        contract_version = self.context.get('contract_version')
+        if user and contract and contract_version:
+            # Get the latest signature request for the given contract, contract version, and user
+            latest_request = SignatureRequests.objects.filter(
+                request_user=user,
+                contract=contract,
+                contract_version=contract_version,
+                file=obj
+            ).order_by('-request_date').first()
+            print(latest_request)
+            if latest_request:
+                return True
+        return False
+
+
+class UserFilesSerializer(serializers.ModelSerializer):
+    files = FileSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = User
+        fields = ["id", "username", "files"]
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        contract = self.context.get('contract')
+        contract_version = self.context.get('contract_version')
+        request_user = instance  # The current user instance being serialized
+
+        # Pass the context to each file serializer
+        for file_data in representation['files']:
+            file_instance = instance.files.filter(id=file_data['id']).first()
+            file_serializer = FileSerializer(
+                file_instance, 
+                context={'request_user': request_user, 'contract': contract, 'contract_version': contract_version}
+            )
+            file_data['selected'] = file_serializer.data['selected']
+        return representation
+
+
+# class FileSerializer(serializers.ModelSerializer):
+#     # selected = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = Files
+#         fields = ["id", "file", "file_name", "file_date", "file_size"]
+
+
+# class UserFilesSerializer(serializers.ModelSerializer):
+#     files = FileSerializer(many=True, read_only=True)
+
+#     class Meta:
+#         model = User
+#         fields = ["id", "username", "files"]
+
+#     # def to_representation(self, instance):
+#     #     representation = super().to_representation(instance)
+#     #     contract = self.context.get('contract')
+#     #     contract_version = self.context.get('contract_version')
+#     #     request_user = instance  # The current user instance being serialized
+
+#     #     # Pass the context to each file serializer
+#     #     for file_data in representation['files']:
+#     #         file_instance = instance.files.filter(id=file_data['id']).first()
+#     #         file_serializer = FileSerializer(
+#     #             file_instance, 
+#     #             context={'request_user': request_user, 'contract': contract, 'contract_version': contract_version}
+#     #         )
+#     #         file_data['selected'] = file_serializer.data['selected']
+#     #     return representation

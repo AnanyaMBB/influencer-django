@@ -299,6 +299,20 @@ class OtherService(BaseService):
     custom_fields = JSONField(default=dict, blank=True, null=True)
     price = models.FloatField(null=True, blank=True)
 
+class Service(models.Model):
+    instagram_information = models.ForeignKey(InfluencerInstagramInformation, on_delete=models.CASCADE)
+    service_name = models.CharField(max_length=100, null=True, blank=True)
+    service_type = models.CharField(max_length=100, null=True, blank=True)
+    post_type = models.CharField(max_length=100, null=True, blank=True)
+    post_length = models.IntegerField(null=True, blank=True)
+    content_provider = models.ForeignKey(User, on_delete=models.CASCADE, related_name="service_content_provider")
+
+class ServicePricing(models.Model):
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    pricing_type = models.CharField(max_length=100, null=True, blank=True)
+    price = models.FloatField(null=True, blank=True)
+                                              
+
 
 # {
 # "username": "ananya",
@@ -317,7 +331,9 @@ class Contract(models.Model):
     contract_name = models.CharField(max_length=100, null=True, blank=True)
     business = models.ForeignKey(BusinessAccount, on_delete=models.CASCADE)
     influencer = models.ForeignKey(InfluencerAccount, on_delete=models.CASCADE)
+    influencerInstagramInformation = models.ForeignKey(InfluencerInstagramInformation, on_delete=models.CASCADE, null=True, blank=True)
     contract_date = models.DateTimeField(default=datetime.now, null=True, blank=True)
+    document_id = models.CharField(max_length=500, null=True, blank=True)
 
 class ContractVersion(models.Model):
     contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
@@ -327,6 +343,9 @@ class ContractVersion(models.Model):
     contract_visible = models.BooleanField(default=False)
     owner = models.ForeignKey(User, on_delete=models.CASCADE)
     is_influencer = models.BooleanField(default=False)
+    # file_uploader = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='file_uploader')
+    file_uploader = models.CharField(max_length=100, null=True, blank=True)
+    file_upload_date = models.DateTimeField(default=datetime.now, null=True, blank=True)
 
     class Meta: 
         unique_together = ('contract', 'contract_version')
@@ -346,6 +365,7 @@ class ContractUserPermissions(models.Model):
     read = models.BooleanField(default=False)
     write = models.BooleanField(default=False)
     user_add_date_time = models.DateTimeField(default=datetime.now, null=True, blank=True)
+    
 
 class ContractVersionUserPermissions(models.Model):
     contract_version = models.ForeignKey(ContractVersion, on_delete=models.CASCADE)
@@ -354,3 +374,20 @@ class ContractVersionUserPermissions(models.Model):
     write = models.BooleanField(default=False)
 
     
+class SignatureRequests(models.Model):
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE)
+    contract_version = models.ForeignKey(ContractVersion, on_delete=models.CASCADE)
+    request_user = models.ForeignKey(User, on_delete=models.CASCADE)
+    request_date = models.DateTimeField(default=datetime.now, null=True, blank=True)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    file = models.ForeignKey('Files', on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta: 
+        unique_together = ('contract', 'contract_version', 'request_user', 'request_date')
+
+class Files(models.Model):
+    file = models.FileField(upload_to='contracts/')
+    file_name = models.CharField(max_length=100, null=True, blank=True)
+    file_date = models.DateTimeField(default=datetime.now, null=True, blank=True)
+    file_size = models.PositiveBigIntegerField()
+    users = models.ManyToManyField(User, related_name='files')

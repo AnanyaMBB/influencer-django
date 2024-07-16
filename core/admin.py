@@ -22,6 +22,8 @@ from .models import (
     ContractVersion, 
     ContractUserPermissions,
     ContractVersionUserPermissions,
+    SignatureRequests,
+    Files,
 )
 
 # Register your models here.
@@ -47,4 +49,7 @@ admin.site.register(Contract)
 admin.site.register(ContractVersion)
 admin.site.register(ContractUserPermissions)
 admin.site.register(ContractVersionUserPermissions)
+admin.site.register(SignatureRequests)
+admin.site.register(Files)
+
 

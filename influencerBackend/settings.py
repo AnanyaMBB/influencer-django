@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
+from decouple import config 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -32,6 +33,15 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
     'ROTATE_REFRESH_TOKENS': True,  
 }
+
+SIGNNOW_API_KEY = config('SIGNNOW_API_KEY')
+SIGNNOW_EMAIL = config('SIGNNOW_EMAIL')
+SIGNNOW_PASSWORD = config('SIGNNOW_PASSWORD')
+
+# settings.py
+PAYPAL_CLIENT_ID = 'AZK_m7FsxCJ1rZXNQNH5CizyZm_TU9lf7RWgrZWgnB-yPL8is5j2ztyBFzyXaEZjIHmTgHtdXEbA3k7a'
+PAYPAL_CLIENT_SECRET = 'EI0oBSAbAeYCNfzDJJ5Cg_La2UnDvvwwKh_a6INH_UaR-VyvwtTExmR5s3qUP52Hq3z0TN20wcrViwdO'
+PAYPAL_MODE = 'sandbox'  # or 'live' for production
 
 
 # Application definition

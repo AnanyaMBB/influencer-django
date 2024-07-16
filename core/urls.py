@@ -76,4 +76,22 @@ urlpatterns = [
     path("api/contract/version/get", views.getContractVersions, name="getContractVersions"),
     path("api/contract/version/text/get", views.getContractVersionText, name="getContractVersionText"),
     path("api/contract/version/update", views.updateContractVersionText, name="updateContractVersion"),
+    path("api/contract/signature/request", views.addSignatureRequest, name="addSignatureRequest"),
+    path("api/contract/signature/get", views.getSignatureState, name="getSignatureState"),
+    path("api/contract/signature/accept", views.acceptSignature, name="acceptSignature"),
+    path("api/contract/signature/decline", views.declineSignature, name="declineSignature"),
+
+    path("api/contract/signature/document/upload", views.uploadDocumentSignNow, name="uploadDocumentSignNow"),
+    path("api/contract/signature/invite", views.inviteSignNow, name="inviteSignNow"),
+    path("api/contract/signed", views.getSignedContracts, name="getSignedContracts"),
+    path("api/contract/signed/get", views.getSignedContract, name="getSignedContract"),
+
+    path("api/files", views.getUserFiles, name="getUserFiles"),
+
+    path("api/element/details", views.getElementDetails, name="getElementDetails"),
+
+    path("api/file/download", views.downloadFile, name="downloadFile"),
+    path("api/file/upload", views.uploadFile, name="uploadFile"),
+
+    path("api/campaign/file/update", views.updateCampaignFile, name="updateCampaignFile"),
 ]

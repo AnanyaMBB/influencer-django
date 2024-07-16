@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, Http404
 from .serializers import (
     RegisterSerializer,
     InfluencerAccountSerializer,
@@ -27,6 +27,9 @@ from .serializers import (
     ContractVersionCreateSerializer,
     ContractVersionSerializer,
     ContractVersionTextUpdateSerializer,
+    SignatureRequestsSerializer,
+    SignatureRequestsCreateSerializer,
+    UserFilesSerializer,
 )
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -55,6 +58,8 @@ from .models import (
     ContractVersion,
     ContractUserPermissions,
     ContractVersionUserPermissions,
+    SignatureRequests,
+    Files,
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import InfluencerFilter
@@ -62,7 +67,7 @@ from rest_framework import viewsets
 from rest_framework.filters import OrderingFilter
 from django.db.models import Max
 from rest_framework import generics
-from django.http import JsonResponse
+from django.http import JsonResponse, FileResponse
 from django.core.serializers import serialize
 from django.db.models import OuterRef, Subquery, F
 from django.db.models import Q, Exists, OuterRef
@@ -70,6 +75,8 @@ from django.db.models.functions import Coalesce
 from django.forms.models import model_to_dict
 from django_countries.fields import Country
 from datetime import datetime
+from django.conf import settings
+import requests
 
 
 @api_view(["POST"])
@@ -93,11 +100,12 @@ def influencerRegister(request):
         return Response(tokens, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(["GET"])
 def accountType(request):
     username = request.GET.get("username")
     user = User.objects.get(username=username)
-    
+
     print(InfluencerAccount.objects.filter(user=user))
     print(BusinessAccount.objects.filter(user=user))
     print(InfluencerAccount.objects.filter(user=user).exists())
@@ -107,6 +115,7 @@ def accountType(request):
     elif BusinessAccount.objects.filter(user=user).exists():
         return Response({"accountType": "business"})
     return Response({"account_type": "none"})
+
 
 @api_view(["POST"])
 def influencerInstagramInformationAdd(request):
@@ -467,6 +476,7 @@ def filter_influencers(
 
     return queryset
 
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def createContract(request):
@@ -523,6 +533,7 @@ def getContractVersions(request):
 
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def getContractVersionText(request):
@@ -534,6 +545,7 @@ def getContractVersionText(request):
     serializer = ContractVersionSerializer(contractVersion)
 
     return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
@@ -547,3 +559,314 @@ def updateContractVersionText(request):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+def addSignatureRequest(request):
+    serializer = SignatureRequestsCreateSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def getSignatureState(request):
+    contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
+    contractVersion = ContractVersion.objects.get(
+        contract=contract, contract_version=request.GET.get("version_id")
+    )
+
+    signatureRequests = (
+        SignatureRequests.objects.filter(
+            contract=contract, contract_version=contractVersion
+        )
+        .order_by("-request_date")
+        .first()
+    )
+    serializer = SignatureRequestsSerializer(signatureRequests)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def acceptSignature(request):
+    # try:
+
+    contract = Contract.objects.get(contract_id=request.data.get("contract_id"))
+    contractVersion = ContractVersion.objects.get(
+        contract=contract, contract_version=request.data.get("version_id")
+    )
+    user = User.objects.get(username=request.data.get("username"))
+
+    signatureRequests = SignatureRequests.objects.get(
+        contract=contract,
+        contract_version=contractVersion,
+        request_user=user,
+        request_date=request.data.get("request_date"),
+    )
+    signatureRequests.state = "accepted"
+    signatureRequests.save()
+    return Response(status=status.HTTP_200_OK)
+    # except SignatureRequests.DoesNotExist:
+    #     return Response(status=status.HTTP_404_NOT_FOUND)
+    # except Exception as e:
+    #     return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def declineSignature(request):
+    try:
+        contract = Contract.objects.get(contract_id=request.data.get("contract_id"))
+        contractVersion = ContractVersion.objects.get(
+            contract=contract, contract_version=request.data.get("version_id")
+        )
+        user = User.objects.get(username=request.data.get("username"))
+
+        signatureRequests = SignatureRequests.objects.get(
+            contract=contract,
+            contract_version=contractVersion,
+            request_user=user,
+            request_date=request.data.get("request_date"),
+        )
+        signatureRequests.state = "declined"
+        signatureRequests.save()
+        return Response(status=status.HTTP_200_OK)
+    except SignatureRequests.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+def uploadDocumentSignNow(request):
+    try:
+        signnow_access_token = ""
+        # Get Oauth token
+        url = "https://api.signnow.com/oauth2/token"
+        headers = {
+            "Accept": "application/json",
+            "Authorization": f"Basic {settings.SIGNNOW_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        data = {
+            "username": f"{settings.SIGNNOW_EMAIL}",
+            "password": f"{settings.SIGNNOW_PASSWORD}",
+            "grant_type": "password",
+            "scope": "*",
+        }
+
+        response = requests.post(url, headers=headers, json=data)
+        print(response.json())
+        response.raise_for_status()
+        signnow_access_token = response.json()["access_token"]
+
+        # Upload Document
+        file = request.FILES.get("file")
+        if not file:
+            return Response(
+                {"error": "No file provided"}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        url = "https://api.signnow.com/document"
+        headers = {
+            "Authorization": f"Bearer {signnow_access_token}",
+        }
+        files = {
+            "file": (file.name, file.read(), file.content_type),
+        }
+
+        response = requests.post(url, headers=headers, files=files)
+        contract = Contract.objects.get(contract_id=request.data.get("contract_id"))
+        contract.document_id = response.json()["id"]
+        contract.save()
+        print(response.json())
+        response.raise_for_status()
+        return Response(response.json(), status=status.HTTP_200_OK)
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def inviteSignNow(request):
+    signnow_access_token = ""
+    # Get Oauth token
+    url = "https://api.signnow.com/oauth2/token"
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Basic {settings.SIGNNOW_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    data = {
+        "username": f"{settings.SIGNNOW_EMAIL}",
+        "password": f"{settings.SIGNNOW_PASSWORD}",
+        "grant_type": "password",
+        "scope": "*",
+    }
+
+    response = requests.post(url, headers=headers, json=data)
+    print(response.json())
+    response.raise_for_status()
+    signnow_access_token = response.json()["access_token"]
+
+    contract = Contract.objects.get(contract_id=request.data.get("contract_id"))
+    document_id = contract.document_id
+    business_email = contract.business.user.email
+    influencer_email = contract.influencer.user.email
+
+    # Invite to sign document
+    subject = "Sign this document"
+    message = "Sign this document"
+
+    url = f"https://api.signnow.com/document/{document_id}/invite"
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {signnow_access_token}",
+        "Content-Type": "application/json",
+    }
+    data = {
+        "document_id": document_id,
+        "to": business_email,
+        "from": settings.SIGNNOW_EMAIL,
+        "subject": subject,
+        "message": message,
+    }
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+
+    url = f"https://api.signnow.com/document/{document_id}/invite"
+    headers = {
+        "Accept": "application/json",
+        "Authorization": f"Bearer {signnow_access_token}",
+        "Content-Type": "application/json",
+    }
+    data = {
+        "document_id": document_id,
+        "to": influencer_email,
+        "from": settings.SIGNNOW_EMAIL,
+        "subject": subject,
+        "message": message,
+    }
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+
+    return Response(response.json(), status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+def getSignedContracts(request):
+    signedRequests = SignatureRequests.objects.filter(state="accepted")
+    serializer = SignatureRequestsSerializer(signedRequests, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+def getSignedContract(request):
+    contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
+    print("Contract: ", contract)
+    contractVersion = ContractVersion.objects.get(contract=contract, contract_version=request.GET.get("version_id"))
+    print("Contract Version: ", contractVersion)
+    signedRequests = SignatureRequests.objects.get(contract=contract, contract_version=contractVersion, state="accepted")
+    serializer = SignatureRequestsSerializer(signedRequests)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+def uploadFile(request):
+    user = User.objects.get(username=request.data.get("username"))
+    file = request.FILES.get("file")
+    print("File: >", file.name)
+    file_instance = Files(file=file, file_name=file.name, file_size=file.size)
+    file_instance.save()
+    file_instance.users.add(user)
+
+    response = {"file_id": file_instance.id}
+    
+    return Response(response, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+def getUserFiles(request):
+    try:
+        user = User.objects.get(username=request.GET.get("username"))
+    except User.DoesNotExist:
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
+    # contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
+    # contract_version = ContractVersion.objects.get(
+    #     contract=contract, contract_version=request.GET.get("version_id")
+    # )
+
+    # serializer = UserFilesSerializer(
+    #     user, context={"contract": contract, "contract_version": contract_version}
+    # )
+
+    serializer = UserFilesSerializer(user)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def getContractFile(request):
+    contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
+    contract_version = ContractVersion.objects.get(contract=contract, contract_version=request.GET.get("version_id"))
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def downloadFile(request):
+    file_instance = get_object_or_404(Files, id=request.GET.get("file_id"))
+    file_path = file_instance.file.path
+
+    try:
+        return FileResponse(open(file_path, "rb"), as_attachment=True, filename=file_instance.file_name or file_instance.file.name)
+    except FileNotFoundError:
+        raise Http404("File does not exist")
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def getElementDetails(request):
+    # try: 
+    contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
+    contract_version = ContractVersion.objects.get(
+        contract=contract, contract_version=request.GET.get("version_id")
+    )
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
+        instagram_id=contract.influencerInstagramInformation.instagram_id
+    )
+    instagramInitialInformation = InstagramInitialInformation.objects.filter(
+        influencer_instagram_information=influencerInstagramInformation
+    ).latest("date")
+    return_data = {
+        "company_name": contract.business.company_name,
+        "influencer_name": contract.influencer.user.get_full_name(),
+        "influencer_username": instagramInitialInformation.username,
+        "file_upload_date": contract_version.file_upload_date,
+        "file_upload_user": contract_version.file_uploader,
+    }
+
+    return Response(return_data, status=status.HTTP_200_OK)
+    # except Exception as e:
+    #     return Response(status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+def updateCampaignFile(request):
+    contract = Contract.objects.get(contract_id=request.data.get("contract_id"))
+    contract_version = ContractVersion.objects.get(
+        contract=contract, contract_version=request.data.get("version_id")
+    )
+    signatureRequests = SignatureRequests.objects.filter(contract=contract, contract_version=contract_version).latest("request_date")
+    
+    file = Files.objects.get(id=request.data.get("file_id"))
+    signatureRequests.file = file
+    signatureRequests.save()
+    return Response(status=status.HTTP_200_OK)
+
+
