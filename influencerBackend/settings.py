@@ -113,7 +113,7 @@ WSGI_APPLICATION = 'influencerBackend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'marketingosDB',
+        'NAME': 'marketingosdb',
         'USER': 'ananya',
         'PASSWORD': 'xc@12#@#@#@',
         'HOST': 'localhost',
