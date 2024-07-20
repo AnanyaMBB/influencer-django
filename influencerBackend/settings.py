@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-rx6-%l#%^z!lmbfnafsyd9sl9$jr=+2abn86h-6r&^6)yb#io8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', '64.225.1.169']
 
 from datetime import timedelta 
 SIMPLE_JWT = {
@@ -77,7 +77,7 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',)
 }
 
-CORS_ALLOWED_ORIGINS = ['64.225.1.169', 'http://localhost:3000', 'https://361e3dbcf910367999535abb1896389c.loophole.site', 'https://4b87fdd3364da9d7d6a96493295368ee.loophole.site', 'https://b45687c8aa5886450c22f9186cf29f43.loophole.site', 'https://93c301590d5dd7f37ad0e33c7f196edf.loophole.site']
+CORS_ALLOWED_ORIGINS = ['http://64.225.1.169', 'http://localhost:3000', 'https://361e3dbcf910367999535abb1896389c.loophole.site', 'https://4b87fdd3364da9d7d6a96493295368ee.loophole.site', 'https://b45687c8aa5886450c22f9186cf29f43.loophole.site', 'https://93c301590d5dd7f37ad0e33c7f196edf.loophole.site']
 
 ROOT_URLCONF = 'influencerBackend.urls'
 
@@ -103,13 +103,23 @@ WSGI_APPLICATION = 'influencerBackend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'marketingosDB',
+        'USER': 'ananya',
+        'PASSWORD': 'xc@12#@#@#@',
+        'HOST': 'localhost',
+        'PORT': '',
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
