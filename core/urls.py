@@ -94,4 +94,7 @@ urlpatterns = [
     path("api/file/upload", views.uploadFile, name="uploadFile"),
 
     path("api/campaign/file/update", views.updateCampaignFile, name="updateCampaignFile"),
+
+    path("api/instagram/service/add", views.addInstagramService, name="addInstagramService"),
+    path("api/instagram/service/get", views.getInstagramService, name="getInstagramService"),
 ]

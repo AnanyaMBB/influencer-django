@@ -24,6 +24,8 @@ from .models import (
     ContractVersionUserPermissions,
     SignatureRequests,
     Files,
+    Service,
+    ServicePricing
 )
 
 # Register your models here.
@@ -51,5 +53,6 @@ admin.site.register(ContractUserPermissions)
 admin.site.register(ContractVersionUserPermissions)
 admin.site.register(SignatureRequests)
 admin.site.register(Files)
-
+admin.site.register(Service)
+admin.site.register(ServicePricing)
 

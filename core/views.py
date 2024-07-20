@@ -30,6 +30,7 @@ from .serializers import (
     SignatureRequestsSerializer,
     SignatureRequestsCreateSerializer,
     UserFilesSerializer,
+    ServiceSerializer,
 )
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -60,6 +61,8 @@ from .models import (
     ContractVersionUserPermissions,
     SignatureRequests,
     Files,
+    Service, 
+    ServicePricing
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import InfluencerFilter
@@ -869,4 +872,21 @@ def updateCampaignFile(request):
     signatureRequests.save()
     return Response(status=status.HTTP_200_OK)
 
+
+@api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+def addInstagramService(request):
+    serializer = ServiceSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+def getInstagramService(request):
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(instagram_id=request.GET.get("instagram_id"))
+    services = Service.objects.filter(influencer_instagram_information=influencerInstagramInformation)
+    serializer = ServiceSerializer(services, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 

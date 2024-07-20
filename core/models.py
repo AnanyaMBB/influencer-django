@@ -300,15 +300,15 @@ class OtherService(BaseService):
     price = models.FloatField(null=True, blank=True)
 
 class Service(models.Model):
-    instagram_information = models.ForeignKey(InfluencerInstagramInformation, on_delete=models.CASCADE)
+    influencer_instagram_information = models.ForeignKey(InfluencerInstagramInformation, on_delete=models.CASCADE)
     service_name = models.CharField(max_length=100, null=True, blank=True)
     service_type = models.CharField(max_length=100, null=True, blank=True)
     post_type = models.CharField(max_length=100, null=True, blank=True)
     post_length = models.IntegerField(null=True, blank=True)
-    content_provider = models.ForeignKey(User, on_delete=models.CASCADE, related_name="service_content_provider")
+    content_provider = models.CharField(max_length=100, null=True, blank=True)
 
 class ServicePricing(models.Model):
-    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    service = models.ForeignKey(Service, on_delete=models.CASCADE, related_name="pricings")
     pricing_type = models.CharField(max_length=100, null=True, blank=True)
     price = models.FloatField(null=True, blank=True)
                                               

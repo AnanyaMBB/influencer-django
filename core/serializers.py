@@ -25,6 +25,8 @@ from .models import (
     ContractVersionUserPermissions,
     SignatureRequests,
     Files,
+    Service,
+    ServicePricing,
 )
 
 from django.utils import timezone
@@ -431,10 +433,10 @@ class SignatureRequestsSerializer(serializers.ModelSerializer):
 
         if ret["file"] != None:
             file = Files.objects.get(id=ret["file"])
-            ret["file_name"] = file.file_name 
+            ret["file_name"] = file.file_name
             ret["file_size"] = file.file_size
             ret["file_date"] = file.file_date
-        else: 
+        else:
             ret["file_name"] = None
             ret["file_size"] = None
             ret["file_date"] = None
@@ -467,7 +469,7 @@ class SignatureRequestsCreateSerializer(serializers.ModelSerializer):
         return SignatureRequests.objects.create(
             contract=contract,
             contract_version=version,
-            request_user=user,  
+            request_user=user,
             # file=file,
             **validated_data
         )
@@ -481,18 +483,22 @@ class FileSerializer(serializers.ModelSerializer):
         fields = ["id", "file", "file_name", "file_date", "file_size", "selected"]
 
     def get_selected(self, obj):
-        user = self.context.get('request_user')
-    
-        contract = self.context.get('contract')
-        contract_version = self.context.get('contract_version')
+        user = self.context.get("request_user")
+
+        contract = self.context.get("contract")
+        contract_version = self.context.get("contract_version")
         if user and contract and contract_version:
             # Get the latest signature request for the given contract, contract version, and user
-            latest_request = SignatureRequests.objects.filter(
-                request_user=user,
-                contract=contract,
-                contract_version=contract_version,
-                file=obj
-            ).order_by('-request_date').first()
+            latest_request = (
+                SignatureRequests.objects.filter(
+                    request_user=user,
+                    contract=contract,
+                    contract_version=contract_version,
+                    file=obj,
+                )
+                .order_by("-request_date")
+                .first()
+            )
             print(latest_request)
             if latest_request:
                 return True
@@ -508,18 +514,22 @@ class UserFilesSerializer(serializers.ModelSerializer):
 
     def to_representation(self, instance):
         representation = super().to_representation(instance)
-        contract = self.context.get('contract')
-        contract_version = self.context.get('contract_version')
+        contract = self.context.get("contract")
+        contract_version = self.context.get("contract_version")
         request_user = instance  # The current user instance being serialized
 
         # Pass the context to each file serializer
-        for file_data in representation['files']:
-            file_instance = instance.files.filter(id=file_data['id']).first()
+        for file_data in representation["files"]:
+            file_instance = instance.files.filter(id=file_data["id"]).first()
             file_serializer = FileSerializer(
-                file_instance, 
-                context={'request_user': request_user, 'contract': contract, 'contract_version': contract_version}
+                file_instance,
+                context={
+                    "request_user": request_user,
+                    "contract": contract,
+                    "contract_version": contract_version,
+                },
             )
-            file_data['selected'] = file_serializer.data['selected']
+            file_data["selected"] = file_serializer.data["selected"]
         return representation
 
 
@@ -548,8 +558,51 @@ class UserFilesSerializer(serializers.ModelSerializer):
 #     #     for file_data in representation['files']:
 #     #         file_instance = instance.files.filter(id=file_data['id']).first()
 #     #         file_serializer = FileSerializer(
-#     #             file_instance, 
+#     #             file_instance,
 #     #             context={'request_user': request_user, 'contract': contract, 'contract_version': contract_version}
 #     #         )
 #     #         file_data['selected'] = file_serializer.data['selected']
 #     #     return representation
+
+class ServicePricingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServicePricing
+        fields = ["pricing_type", "price"]
+
+class ServiceSerializer(serializers.ModelSerializer):
+    instagram_id = serializers.CharField(write_only=True)
+    pricing = serializers.ListField(write_only=True)
+    # pricing = ServicePricingSerializer(many=True, read_only=True, source="pricings")
+
+    class Meta:
+        model = Service
+        # fields = "__all__"
+        # exclude = ["influencer_instagram_information"]
+        # include = ["pricing"]
+        fields = ["instagram_id", "service_name", "service_type", "post_type", "post_length", "content_provider", "pricing"]
+
+    def create(self, validated_data):
+        pricing_data = validated_data.pop("pricing")
+        influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
+            instagram_id=validated_data["instagram_id"]
+        )
+        validated_data.pop("instagram_id")
+        service = Service.objects.create(
+            influencer_instagram_information=influencerInstagramInformation,
+            **validated_data
+        )
+        for pricing in pricing_data:
+            ServicePricing.objects.create(
+                service=service,
+                pricing_type=pricing["pricing_type"],
+                price=pricing["price"],
+            )
+
+        return service
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        print(ret)
+        ret["pricing"] = ServicePricingSerializer(instance.pricings.all(), many=True).data
+        return ret
+
