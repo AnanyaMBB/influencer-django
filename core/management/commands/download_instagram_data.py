@@ -143,10 +143,11 @@ class Command(BaseCommand):
                                 except Exception as e:
                                     print("Error in country demographics", e)
                 # Get Media Data
-                try:
-                    self.getMediaData(influencerInstagramInformation, date)
-                except Exception as e:
-                    print("Error in Media Data", e)
+                self.getMediaData(influencerInstagramInformation, date)
+                # try:
+                #     self.getMediaData(influencerInstagramInformation, date)
+                # except Exception as e:
+                #     print("Error in Media Data", e)
 
     def getInitialInformation(
         self, influencerInstagramInformation, date, initialInformations
@@ -372,20 +373,25 @@ class Command(BaseCommand):
         facebookApiRequest = requests.get(
             f"https://graph.facebook.com/v18.0/{influencerInstagramInformation.instagram_id}/media?access_token={access_token}"
         )
-
+        print(f"Facebook API Request: {facebookApiRequest.json()}")
         for media in facebookApiRequest.json()["data"]:
+            print("===>MEDIA", media)
             facebookApiRequestField = requests.get(
                 f'https://graph.facebook.com/v18.0/{media["id"]}?fields=media_url,caption,id,timestamp,is_comment_enabled,is_shared_to_feed,like_count,media_product_type,media_type,thumbnail_url,comments_count&access_token={access_token}'
             )
+            print("===>MEDIA FIELD", facebookApiRequestField.json())
 
             facebookApiRequestComment = requests.get(
                 f'https://graph.facebook.com/v18.0/{media["id"]}/comments?access_token={access_token}'
             )
+            print("===>MEDIA COMMENT", facebookApiRequestComment.json())
 
-            if facebookApiRequestField.json()["media_type"] == "REELS":
+            if facebookApiRequestField.json()["media_product_type"] == "REELS":
+                print("Reel")
                 facebookApiRequestInsight = requests.get(
-                    f'https://graph.facebook.com/v18.0/{media["id"]}/insights?metric=impressions,shares,reach,saved,video_views,total_interactions,profile_activity,profile_visits,ig_reels_avg_watch_time,ig_reels_video_view_total_time,plays&access_token={access_token}'
+                    f'https://graph.facebook.com/v18.0/{media["id"]}/insights?metric=impressions,shares,reach,saved,video_views,total_interactions,ig_reels_avg_watch_time,ig_reels_video_view_total_time,plays&access_token={access_token}'
                 )
+                print("Reel Insights: ", facebookApiRequestInsight.json())
             else:
                 facebookApiRequestInsight = requests.get(
                     f'https://graph.facebook.com/v18.0/{media["id"]}/insights?metric=impressions,reach,shares,saved,video_views,total_interactions,profile_activity,profile_visits&access_token={access_token}'

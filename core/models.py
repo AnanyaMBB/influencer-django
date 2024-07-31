@@ -217,42 +217,44 @@ class InstagramMediaData(InstagramBase):
     profile_activity = models.IntegerField(null=True, blank=True)
     profile_visits = models.IntegerField(null=True, blank=True)
 
-
-@receiver(post_save, sender=InstagramMediaData)
-def update_media_data(sender, instance, created, **kwargs):
-    mq = marqo.Client(url="http://localhost:8882")
-    if created:
-        mq.index("instagram_media_data").add_documents(
-            [
-                {
-                    "id": instance.id,
-                    "media_id": instance.media_id,
-                    "media_type": instance.media_type,
-                    "media_product_type": instance.media_product_type,
-                    "caption": instance.caption,
-                    "media": instance.media_url,
-                }
-            ]
-        )
-
-    else:
-        mq.index("instagram_media_data").update_documents(
-            [
-                {
-                    "id": instance.id,
-                    "media_id": instance.media_id,
-                    "media_type": instance.media_type,
-                    "media_product_type": instance.media_product_type,
-                    "caption": instance.caption,
-                    "media": instance.media_url,
-                }
-            ]
-        )
+    transcribed = models.BooleanField(default=False)
 
 
-def delete_video_index(sender, instance, **kwargs):
-    mq = marqo.Client(url="http://localhost:8882")
-    mq.index("instagram_media_data").delete_documents([instance.id])
+# @receiver(post_save, sender=InstagramMediaData)
+# def update_media_data(sender, instance, created, **kwargs):
+#     mq = marqo.Client(url="http://localhost:8882")
+#     if created:
+#         mq.index("instagram_media_data").add_documents(
+#             [
+#                 {
+#                     "id": instance.id,
+#                     "media_id": instance.media_id,
+#                     "media_type": instance.media_type,
+#                     "media_product_type": instance.media_product_type,
+#                     "caption": instance.caption,
+#                     "media": instance.media_url,
+#                 }
+#             ]
+#         )
+
+#     else:
+#         mq.index("instagram_media_data").update_documents(
+#             [
+#                 {
+#                     "id": instance.id,
+#                     "media_id": instance.media_id,
+#                     "media_type": instance.media_type,
+#                     "media_product_type": instance.media_product_type,
+#                     "caption": instance.caption,
+#                     "media": instance.media_url,
+#                 }
+#             ]
+#         )
+
+
+# def delete_video_index(sender, instance, **kwargs):
+#     mq = marqo.Client(url="http://localhost:8882")
+#     mq.index("instagram_media_data").delete_documents([instance.id])
 
 
 class InstagramMediaComment(InstagramBase):
@@ -391,3 +393,10 @@ class Files(models.Model):
     file_date = models.DateTimeField(default=datetime.now, null=True, blank=True)
     file_size = models.PositiveBigIntegerField()
     users = models.ManyToManyField(User, related_name='files')
+
+class Requests(models.Model):
+    business = models.ForeignKey(BusinessAccount, on_delete=models.CASCADE)
+    influencer = models.ForeignKey(InfluencerAccount, on_delete=models.CASCADE)
+    service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    request_date = models.DateTimeField(default=datetime.now, null=True, blank=True)

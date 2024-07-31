@@ -27,6 +27,7 @@ from .models import (
     Files,
     Service,
     ServicePricing,
+    Requests,
 )
 
 from django.utils import timezone
@@ -579,7 +580,7 @@ class ServiceSerializer(serializers.ModelSerializer):
         # fields = "__all__"
         # exclude = ["influencer_instagram_information"]
         # include = ["pricing"]
-        fields = ["instagram_id", "service_name", "service_type", "post_type", "post_length", "content_provider", "pricing"]
+        fields = ["instagram_id", "service_name", "service_type", "post_type", "post_length", "content_provider", "pricing", "id"]
 
     def create(self, validated_data):
         pricing_data = validated_data.pop("pricing")
@@ -605,4 +606,43 @@ class ServiceSerializer(serializers.ModelSerializer):
         print(ret)
         ret["pricing"] = ServicePricingSerializer(instance.pricings.all(), many=True).data
         return ret
+    
+class RequestsSerializer(serializers.ModelSerializer):
+    instagram_id = serializers.CharField(write_only=True)
+    business_username = serializers.CharField(write_only=True)
+    service_id = serializers.CharField(write_only=True)
 
+    influencer = serializers.CharField(read_only=True)
+    business = serializers.CharField(read_only=True)
+    service = serializers.CharField(read_only=True)
+
+    class Meta: 
+        model = Requests
+        exclude = []
+    
+    def create(self, validated_data):
+        influencerInstagramInformation = InfluencerInstagramInformation.objects.get(instagram_id=validated_data["instagram_id"])
+        validated_data.pop("instagram_id")
+        user = User.objects.get(username=validated_data["business_username"])
+        validated_data.pop("business_username")
+        businessAccount = BusinessAccount.objects.get(user=user)
+
+        service = Service.objects.get(id=validated_data["service_id"])
+        validated_data.pop("service_id")
+        return Requests.objects.create(business=businessAccount, influencer=influencerInstagramInformation.influencer, service=service, **validated_data)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret["influencer"] = instance.influencer.id
+        ret["business"] = instance.business.id
+        ret["business_name"] = instance.business.company_name   
+        ret["business_industry"] = instance.business.company_industry
+        ret["business_location"] = instance.business.company_country
+        ret["business_website"] = instance.business.company_website
+        ret["business_username"] = instance.business.user.username
+        ret["service"] = instance.service.id
+        ret["service_name"] = instance.service.service_name
+        servicePricing = instance.service.pricings.first()
+        ret["service_price"] = servicePricing.price
+
+        return ret

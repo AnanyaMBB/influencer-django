@@ -25,7 +25,8 @@ from .models import (
     SignatureRequests,
     Files,
     Service,
-    ServicePricing
+    ServicePricing,
+    Requests
 )
 
 # Register your models here.
@@ -55,4 +56,5 @@ admin.site.register(SignatureRequests)
 admin.site.register(Files)
 admin.site.register(Service)
 admin.site.register(ServicePricing)
+admin.site.register(Requests)
 

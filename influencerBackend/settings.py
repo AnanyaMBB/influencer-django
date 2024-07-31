@@ -11,7 +11,7 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from pathlib import Path
-from decouple import config 
+from decouple import config
 import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -22,120 +22,152 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-rx6-%l#%^z!lmbfnafsyd9sl9$jr=+2abn86h-6r&^6)yb#io8'
+SECRET_KEY = "django-insecure-rx6-%l#%^z!lmbfnafsyd9sl9$jr=+2abn86h-6r&^6)yb#io8"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '64.225.1.169']
+# ALLOWED_HOSTS = ["localhost", "127.0.0.1", "64.225.1.169"]
+ALLOWED_HOSTS = ["*"]
 
-from datetime import timedelta 
+from datetime import timedelta
+
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),
-    'ROTATE_REFRESH_TOKENS': True,  
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "ROTATE_REFRESH_TOKENS": True,
 }
 
-SIGNNOW_API_KEY = config('SIGNNOW_API_KEY')
-SIGNNOW_EMAIL = config('SIGNNOW_EMAIL')
-SIGNNOW_PASSWORD = config('SIGNNOW_PASSWORD')
+SIGNNOW_API_KEY = config("SIGNNOW_API_KEY")
+SIGNNOW_EMAIL = config("SIGNNOW_EMAIL")
+SIGNNOW_PASSWORD = config("SIGNNOW_PASSWORD")
+OPENAI_API_KEY = config("OPENAI_API_KEY")
+WEAVIATE_API_KEY = config("WEAVIATE_API_KEY")
+WEAVIATE_CLUSTER_URL = config("WEAVIATE_CLUSTER_URL")
+REDIS_HOST = config("REDIS_HOST")
+REDIS_PORT = config("REDIS_PORT")
 
 # settings.py
-PAYPAL_CLIENT_ID = 'AZK_m7FsxCJ1rZXNQNH5CizyZm_TU9lf7RWgrZWgnB-yPL8is5j2ztyBFzyXaEZjIHmTgHtdXEbA3k7a'
-PAYPAL_CLIENT_SECRET = 'EI0oBSAbAeYCNfzDJJ5Cg_La2UnDvvwwKh_a6INH_UaR-VyvwtTExmR5s3qUP52Hq3z0TN20wcrViwdO'
-PAYPAL_MODE = 'sandbox'  # or 'live' for production
+PAYPAL_CLIENT_ID = (
+    "AZK_m7FsxCJ1rZXNQNH5CizyZm_TU9lf7RWgrZWgnB-yPL8is5j2ztyBFzyXaEZjIHmTgHtdXEbA3k7a"
+)
+PAYPAL_CLIENT_SECRET = (
+    "EI0oBSAbAeYCNfzDJJ5Cg_La2UnDvvwwKh_a6INH_UaR-VyvwtTExmR5s3qUP52Hq3z0TN20wcrViwdO"
+)
+PAYPAL_MODE = "sandbox"  # or 'live' for production
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'django_filters',
-    'corsheaders',
-    'rest_framework',
-    'core.apps.CoreConfig',
-    'django.contrib.admin',
-    'django.contrib.auth',
-    'django.contrib.contenttypes',
-    'django.contrib.sessions',
-    'django.contrib.messages',
-    'django.contrib.staticfiles',
+    "daphne",
+    "chat",
+    "django_filters",
+    "corsheaders",
+    "rest_framework",
+    "core.apps.CoreConfig",
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.security.SecurityMiddleware',
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "django.contrib.sessions.middleware.SessionMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
 REST_FRAMEWORK = {
-    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
-    'DEFAULT_AUTHENTICATION_CLASSES': ('rest_framework_simplejwt.authentication.JWTAuthentication',)
+    "DEFAULT_FILTER_BACKENDS": ["django_filters.rest_framework.DjangoFilterBackend"],
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
 }
 
-CORS_ALLOWED_ORIGINS = ['http://64.225.1.169', 'http://localhost:3000', 'https://361e3dbcf910367999535abb1896389c.loophole.site', 'https://4b87fdd3364da9d7d6a96493295368ee.loophole.site', 'https://b45687c8aa5886450c22f9186cf29f43.loophole.site', 'https://93c301590d5dd7f37ad0e33c7f196edf.loophole.site']
+CORS_ALLOWED_ORIGINS = [
+    # "http://64.225.1.169",
+    "http://localhost:3000",
+    "https://361e3dbcf910367999535abb1896389c.loophole.site",
+    "https://4b87fdd3364da9d7d6a96493295368ee.loophole.site",
+    "https://b45687c8aa5886450c22f9186cf29f43.loophole.site",
+    "https://93c301590d5dd7f37ad0e33c7f196edf.loophole.site",
+]
 
-ROOT_URLCONF = 'influencerBackend.urls'
+ROOT_URLCONF = "influencerBackend.urls"
 
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
 ]
 
-WSGI_APPLICATION = 'influencerBackend.wsgi.application'
+# WSGI_APPLICATION = "influencerBackend.wsgi.application"
+ASGI_APPLICATION = "influencerBackend.asgi.application"
+
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [("localhost", 6379)],
+        },
+    },
+}
 
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'marketingosdb',
-        'USER': 'ananya',
-        'PASSWORD': 'xc@12#@#@#@',
-        'HOST': 'localhost',
-        'PORT': '5432',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'marketingosdb',
+#         'USER': 'ananya',
+#         'PASSWORD': 'xc@12#@#@#@',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        "NAME": "django.contrib.auth.password_validation.NumericPasswordValidator",
     },
 ]
 
@@ -143,9 +175,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = "UTC"
 
 USE_I18N = True
 
@@ -155,11 +187,11 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 
-STATIC_URL = 'django-static/'
+STATIC_URL = "django-static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.2/ref/settings/#default-auto-field
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

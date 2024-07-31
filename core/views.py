@@ -31,6 +31,7 @@ from .serializers import (
     SignatureRequestsCreateSerializer,
     UserFilesSerializer,
     ServiceSerializer,
+    RequestsSerializer,
 )
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
@@ -61,8 +62,9 @@ from .models import (
     ContractVersionUserPermissions,
     SignatureRequests,
     Files,
-    Service, 
-    ServicePricing
+    Service,
+    ServicePricing,
+    Requests,
 )
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import InfluencerFilter
@@ -80,6 +82,10 @@ from django_countries.fields import Country
 from datetime import datetime
 from django.conf import settings
 import requests
+import weaviate
+import weaviate.classes as wvc
+from weaviate.classes.query import MetadataQuery
+from weaviate.classes.query import Filter
 
 
 @api_view(["POST"])
@@ -769,16 +775,22 @@ def getSignedContracts(request):
     serializer = SignatureRequestsSerializer(signedRequests, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 @api_view(["GET"])
 # @permission_classes([IsAuthenticated])
 def getSignedContract(request):
     contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
     print("Contract: ", contract)
-    contractVersion = ContractVersion.objects.get(contract=contract, contract_version=request.GET.get("version_id"))
+    contractVersion = ContractVersion.objects.get(
+        contract=contract, contract_version=request.GET.get("version_id")
+    )
     print("Contract Version: ", contractVersion)
-    signedRequests = SignatureRequests.objects.get(contract=contract, contract_version=contractVersion, state="accepted")
+    signedRequests = SignatureRequests.objects.get(
+        contract=contract, contract_version=contractVersion, state="accepted"
+    )
     serializer = SignatureRequestsSerializer(signedRequests)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 @api_view(["POST"])
 # @permission_classes([IsAuthenticated])
@@ -791,8 +803,9 @@ def uploadFile(request):
     file_instance.users.add(user)
 
     response = {"file_id": file_instance.id}
-    
+
     return Response(response, status=status.HTTP_200_OK)
+
 
 @api_view(["GET"])
 # @permission_classes([IsAuthenticated])
@@ -814,11 +827,14 @@ def getUserFiles(request):
     serializer = UserFilesSerializer(user)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def getContractFile(request):
     contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
-    contract_version = ContractVersion.objects.get(contract=contract, contract_version=request.GET.get("version_id"))
+    contract_version = ContractVersion.objects.get(
+        contract=contract, contract_version=request.GET.get("version_id")
+    )
 
 
 @api_view(["GET"])
@@ -828,14 +844,19 @@ def downloadFile(request):
     file_path = file_instance.file.path
 
     try:
-        return FileResponse(open(file_path, "rb"), as_attachment=True, filename=file_instance.file_name or file_instance.file.name)
+        return FileResponse(
+            open(file_path, "rb"),
+            as_attachment=True,
+            filename=file_instance.file_name or file_instance.file.name,
+        )
     except FileNotFoundError:
         raise Http404("File does not exist")
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def getElementDetails(request):
-    # try: 
+    # try:
     contract = Contract.objects.get(contract_id=request.GET.get("contract_id"))
     contract_version = ContractVersion.objects.get(
         contract=contract, contract_version=request.GET.get("version_id")
@@ -858,6 +879,7 @@ def getElementDetails(request):
     # except Exception as e:
     #     return Response(status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(["POST"])
 # @permission_classes([IsAuthenticated])
 def updateCampaignFile(request):
@@ -865,8 +887,10 @@ def updateCampaignFile(request):
     contract_version = ContractVersion.objects.get(
         contract=contract, contract_version=request.data.get("version_id")
     )
-    signatureRequests = SignatureRequests.objects.filter(contract=contract, contract_version=contract_version).latest("request_date")
-    
+    signatureRequests = SignatureRequests.objects.filter(
+        contract=contract, contract_version=contract_version
+    ).latest("request_date")
+
     file = Files.objects.get(id=request.data.get("file_id"))
     signatureRequests.file = file
     signatureRequests.save()
@@ -882,11 +906,160 @@ def addInstagramService(request):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 @api_view(["GET"])
 # @permission_classes([IsAuthenticated])
 def getInstagramService(request):
-    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(instagram_id=request.GET.get("instagram_id"))
-    services = Service.objects.filter(influencer_instagram_information=influencerInstagramInformation)
+    influencerInstagramInformation = InfluencerInstagramInformation.objects.get(
+        instagram_id=request.GET.get("instagram_id")
+    )
+    services = Service.objects.filter(
+        influencer_instagram_information=influencerInstagramInformation
+    )
     serializer = ServiceSerializer(services, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+@api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+def getRequests(request):
+    requests = Requests.objects.filter(
+        influencer__user__username=request.GET.get("username")
+    ).order_by("-request_date")
+    serializer = RequestsSerializer(requests, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+def sendRequests(request):
+    serializer = RequestsSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["POST"])
+# @permission_classes([IsAuthenticated])
+def updateRequestState(request):
+    requests = Requests.objects.get(id=request.data.get("request_id"))
+    requests.state = request.data.get("state")
+    requests.save()
+    return Response(status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+# @permission_classes([IsAuthenticated])
+def searchReels(request):
+    print("QUERY: ", request.GET.get("query"))
+    print("TOKENS: ", request.GET.get("tokens"))
+    headers = {"X-OpenAI-Api-Key": settings.OPENAI_API_KEY}
+    weaviateClient = weaviate.connect_to_wcs(
+        cluster_url=settings.WEAVIATE_CLUSTER_URL,
+        auth_credentials=weaviate.auth.AuthApiKey(api_key=settings.WEAVIATE_API_KEY),
+        headers=headers,
+    )
+
+    # try:
+    if weaviateClient.is_ready():
+        transcriptions = weaviateClient.collections.get("ReelsTranscript")
+
+        tokensList = request.GET.get("tokens").split(",")
+        filtersList = []
+        print("TOKENS LIST: ", tokensList)  
+        usernamesList = request.GET.get("username").split(",")
+        print("USERNAMES LIST: ", usernamesList)
+        if request.GET.get("username") != "" and request.GET.get("username") != None and len(usernamesList) > 0 and usernamesList[0] != "": 
+            filtersList.append(
+                Filter.by_property("username").contains_any(usernamesList)
+            )   
+        if request.GET.get("audio_id") != "" and request.GET.get("audio_id") != None:
+            filtersList.append(
+                Filter.by_property("audio_id").equal(request.GET.get("audio_id"))
+            )
+        if (
+            request.GET.get("likes_count") != ""
+            and request.GET.get("likes_count") != None
+        ):
+            filtersList.append(
+                Filter.by_property("likes_count").greater_than(
+                    int(request.GET.get("likes_count"))
+                )
+            )
+        if (
+            request.GET.get("comments_count") != ""
+            and request.GET.get("comments_count") != None
+        ):
+            filtersList.append(
+                Filter.by_property("comments_count").greater_than(
+                    int(request.GET.get("comments_count"))
+                )
+            )
+
+        if request.GET.get("query") == "" or request.GET.get("query") == None:
+            if len(tokensList) > 0 and tokensList[0] != "":
+                response = transcriptions.query.fetch_objects(
+                    filters=(
+                        Filter.all_of(filtersList)
+                        & ((Filter.by_property("transcript").contains_all(tokensList))
+                        | (Filter.by_property("caption").contains_all(tokensList)))
+                    ),
+                    return_metadata=wvc.query.MetadataQuery(certainty=True),
+                )
+            else:
+                print("FILTERS LIST: ", filtersList)
+                response = transcriptions.query.fetch_objects(
+                    filters=(Filter.all_of(filtersList)),
+                    return_metadata=wvc.query.MetadataQuery(certainty=True),
+                )
+
+        else:
+            if len(tokensList) > 0 and tokensList[0] != "":
+                if len(filtersList) > 0:
+                    response = transcriptions.query.near_text(
+                        query=request.GET.get("query"),
+                        filters=(
+                            Filter.all_of(filtersList)
+                            & ((
+                                Filter.by_property("transcript").contains_all(
+                                    tokensList
+                                )
+                            )
+                            | (Filter.by_property("caption").contains_all(tokensList)))
+                        ),
+                        return_metadata=wvc.query.MetadataQuery(certainty=True),
+                    )
+                else:
+                    response = transcriptions.query.near_text(
+                        query=request.GET.get("query"),
+                        filters=(
+                            (
+                                Filter.by_property("transcript").contains_all(
+                                    tokensList
+                                )
+                            )
+                            | (Filter.by_property("caption").contains_all(tokensList))
+                        ),
+                        return_metadata=wvc.query.MetadataQuery(certainty=True),
+                    )
+            else:
+                if len(filtersList) > 0:
+                    response = transcriptions.query.near_text(
+                        query=request.GET.get("query"),
+                        filters=(Filter.all_of(filtersList)),
+                        return_metadata=wvc.query.MetadataQuery(certainty=True),
+                    )
+                else:
+                    response = transcriptions.query.near_text(
+                        query=request.GET.get("query"),
+                        return_metadata=wvc.query.MetadataQuery(certainty=True),
+                    )
+        searchResult = [object.properties for object in response.objects]
+        weaviateClient.close()
+        return Response(searchResult, status=status.HTTP_200_OK)
+
+    # except Exception as e:
+    #     return Response(status=status.HTTP_400_BAD_REQUEST)
+    # finally:
+    #     weaviateClient.close()

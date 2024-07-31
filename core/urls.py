@@ -97,4 +97,10 @@ urlpatterns = [
 
     path("api/instagram/service/add", views.addInstagramService, name="addInstagramService"),
     path("api/instagram/service/get", views.getInstagramService, name="getInstagramService"),
+
+    path("api/requests/get", views.getRequests, name="getRequests"),
+    path("api/requests/send", views.sendRequests, name="sendRequests"),
+    path("api/requests/state/update", views.updateRequestState, name="updateRequestState"),
+
+    path("api/research/search", views.searchReels, name="searchReels"),
 ]
