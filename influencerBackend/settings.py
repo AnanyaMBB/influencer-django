@@ -95,6 +95,10 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     # "http://64.225.1.169",
     "http://localhost:3000",
+    "http://www.buzzfindr.com", 
+    "http://buzzfindr.com",
+    "https://www.buzzfindr.com",
+    "https://buzzfindr.com",
     "https://361e3dbcf910367999535abb1896389c.loophole.site",
     "https://4b87fdd3364da9d7d6a96493295368ee.loophole.site",
     "https://b45687c8aa5886450c22f9186cf29f43.loophole.site",
