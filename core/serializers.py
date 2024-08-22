@@ -30,6 +30,8 @@ from .models import (
     Requests,
 )
 
+from . import models
+
 from django.utils import timezone
 
 
@@ -425,9 +427,9 @@ class SignatureRequestsSerializer(serializers.ModelSerializer):
         ret["request_user"] = user.username
 
         contract = Contract.objects.get(contract_id=ret["contract"])
-        instagramInitialInformation = InstagramInitialInformation.objects.get(
+        instagramInitialInformation = InstagramInitialInformation.objects.filter(
             influencer_instagram_information=contract.influencerInstagramInformation
-        )
+        ).first()
         ret["influencer"] = instagramInitialInformation.username
 
         ret["business"] = contract.business.company_name
@@ -645,4 +647,115 @@ class RequestsSerializer(serializers.ModelSerializer):
         servicePricing = instance.service.pricings.first()
         ret["service_price"] = servicePricing.price
 
+        return ret
+    
+class YoutubeRequestsSerializer(serializers.ModelSerializer):
+    channel_id = serializers.CharField(write_only=True)
+    business_username = serializers.CharField(write_only=True)
+    service_id = serializers.CharField(write_only=True)
+
+    influencer = serializers.CharField(read_only=True)
+    business = serializers.CharField(read_only=True)
+    service = serializers.CharField(read_only=True)
+
+    class Meta: 
+        model = models.YoutubeRequests
+        exclude = []
+    
+    def create(self, validated_data):
+        # influencerInstagramInformation = InfluencerInstagramInformation.objects.get(instagram_id=validated_data["instagram_id"])
+        youtubeChannelInformation = models.YouTubeChannelInformation.objects.get(channel_id=validated_data["channel_id"])
+        validated_data.pop("channel_id")
+        user = User.objects.get(username=validated_data["business_username"])
+        validated_data.pop("business_username")
+        businessAccount = BusinessAccount.objects.get(user=user)
+
+        # service = Service.objects.get(id=validated_data["service_id"])
+        service = models.YoutubeService.objects.get(id=validated_data["service_id"])
+        validated_data.pop("service_id")
+        return models.YoutubeRequests.objects.create(business=businessAccount, influencer=youtubeChannelInformation.influencer, service=service, **validated_data)
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret["influencer"] = instance.influencer.id
+        ret["business"] = instance.business.id
+        ret["business_name"] = instance.business.company_name   
+        ret["business_industry"] = instance.business.company_industry
+        ret["business_location"] = instance.business.company_country
+        ret["business_website"] = instance.business.company_website
+        ret["business_username"] = instance.business.user.username
+        ret["service"] = instance.service.id
+        ret["service_name"] = instance.service.service_name
+        servicePricing = instance.service.youtube_pricings.first()
+        ret["service_price"] = servicePricing.price
+
+        return ret
+
+
+class YouTubeChannelInformationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.YouTubeChannelInformation
+        fields = "__all__"
+
+class YouTubeChannelAnalyticsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.YouTubeChannelAnalytics
+        fields = "__all__"
+
+class YouTubeVideoInformationSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model = models.YouTubeVideoInformation
+        fields = "__all__"
+
+class YouTubeVideoAnalyticsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.YouTubeVideoAnalytics
+        fields = "__all__"
+
+class YouTubeGenderDemographicsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.YouTubeGenderDemographics
+        fields = "__all__"
+
+class YouTubeAgeDemographicsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.YouTubeAgeDemographics
+        fields = "__all__"
+
+class YouTubeGeographicDemographicsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.YouTubeGeographicDemographics
+        fields = "__all__"
+
+class YoutubeServicePricingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.YoutubeServicePricing
+        fields = ["pricing_type", "price"]
+
+class YoutubeServiceSerializer(serializers.ModelSerializer):
+    channel_id = serializers.CharField(write_only=True)
+    pricing = serializers.ListField(write_only=True)
+
+    class Meta:
+        model = Service
+        fields = ["channel_id", "service_name", "service_type", "post_type", "post_length", "content_provider", "pricing", "id"]
+
+    def create(self, validated_data):
+        pricing_data = validated_data.pop("pricing")
+        youtubeChannelInformation = models.YouTubeChannelInformation.objects.get(channel_id=validated_data["channel_id"])
+        validated_data.pop("channel_id")
+        youtubeService = models.YoutubeService.objects.create(channel_information=youtubeChannelInformation, **validated_data)
+        
+        for pricing in pricing_data:
+            models.YoutubeServicePricing.objects.create(
+                service=youtubeService,
+                pricing_type=pricing["pricing_type"],
+                price=pricing["price"],
+            )
+
+        return youtubeService
+    
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret["pricing"] = YoutubeServicePricingSerializer(instance.youtube_pricings.all(), many=True).data
         return ret

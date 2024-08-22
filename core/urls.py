@@ -103,4 +103,16 @@ urlpatterns = [
     path("api/requests/state/update", views.updateRequestState, name="updateRequestState"),
 
     path("api/research/search", views.searchReels, name="searchReels"),
+
+    path("api/influencer/youtube/get", views.getYoutubeChannelInformation, name="getYoutubeChannelInformation"),
+    path("api/youtube-analytics", views.youtubeAnalytics, name="youtubeAnalytics"),
+    path("api/youtube-analytics/get", views.getYoutubeAnalytics, name="getYoutubeAnalytics"),
+
+    path("api/youtube/service/add", views.addYoutubeService, name="addYoutubeService"),
+    path("api/youtube/service/get", views.getYoutubeService, name="getYoutubeService"),
+
+    path("api/youtube/filter", views.YoutubeFilterView, name="YoutubeFilterView"),
+    path("api/youtube/requests/get", views.getYoutubeRequests, name="getYoutubeRequests"),
+    path("api/youtube/requests/send", views.sendYoutubeRequests, name="sendYoutubeRequests"),
+    path("api/youtube/requests/state/update", views.updateYoutubeRequestState, name="updateYoutubeRequestState"),
 ]

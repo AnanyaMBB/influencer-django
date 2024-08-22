@@ -5,7 +5,7 @@ from django_countries.fields import CountryField
 from datetime import datetime
 from django.dispatch import receiver
 from django.db.models.signals import post_save, post_delete
-import marqo
+
 
 
 class BusinessAccount(models.Model):
@@ -316,6 +316,7 @@ class ServicePricing(models.Model):
                                               
 
 
+
 # {
 # "username": "ananya",
 # "password": "ananya",
@@ -398,5 +399,203 @@ class Requests(models.Model):
     business = models.ForeignKey(BusinessAccount, on_delete=models.CASCADE)
     influencer = models.ForeignKey(InfluencerAccount, on_delete=models.CASCADE)
     service = models.ForeignKey(Service, on_delete=models.CASCADE)
+    state = models.CharField(max_length=100, null=True, blank=True)
+    request_date = models.DateTimeField(default=datetime.now, null=True, blank=True)
+
+
+
+
+# from django.db import models
+# from datetime import datetime
+
+# # Base model for YouTube data
+# class YouTubeBase(models.Model):
+#     date = models.DateTimeField(default=datetime.now, null=True, blank=True)
+
+#     class Meta:
+#         abstract = True
+
+# # Model to store basic information about a YouTube channel
+# class YouTubeChannelInformation(models.Model):
+#     influencer = models.ForeignKey(InfluencerAccount, on_delete=models.CASCADE)
+#     channel_id = models.CharField(unique=True, max_length=100)
+#     title = models.CharField(max_length=255, null=True, blank=True)
+#     description = models.TextField(null=True, blank=True)
+#     custom_url = models.CharField(max_length=255, null=True, blank=True)
+#     published_at = models.DateTimeField(null=True, blank=True)
+#     thumbnail_url = models.CharField(max_length=1000, null=True, blank=True)
+#     country = models.CharField(max_length=100, null=True, blank=True)
+#     view_count = models.IntegerField(null=True, blank=True)
+#     subscriber_count = models.IntegerField(null=True, blank=True)
+#     video_count = models.IntegerField(null=True, blank=True)
+#     hidden_subscriber_count = models.BooleanField(default=False)
+
+# # Model to store detailed analytics data for a YouTube channel
+# class YouTubeChannelAnalytics(YouTubeBase):
+#     channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+#     views = models.IntegerField(null=True, blank=True)
+#     estimated_minutes_watched = models.IntegerField(null=True, blank=True)
+#     average_view_duration = models.IntegerField(null=True, blank=True)
+#     total_interactions = models.IntegerField(null=True, blank=True)
+#     likes = models.IntegerField(null=True, blank=True)
+#     dislikes = models.IntegerField(null=True, blank=True)
+#     comments = models.IntegerField(null=True, blank=True)
+#     shares = models.IntegerField(null=True, blank=True)
+
+# # Model to store video-specific information
+# class YouTubeVideoInformation(models.Model):
+#     channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+#     video_id = models.CharField(unique=True, max_length=100)
+#     title = models.CharField(max_length=255, null=True, blank=True)
+#     description = models.TextField(null=True, blank=True)
+#     published_at = models.DateTimeField(null=True, blank=True)
+#     thumbnail_url = models.CharField(max_length=1000, null=True, blank=True)
+#     duration = models.DurationField(null=True, blank=True)
+
+# # Model to store analytics data for a specific video
+# class YouTubeVideoAnalytics(YouTubeBase):
+#     video_information = models.ForeignKey(YouTubeVideoInformation, on_delete=models.CASCADE)
+#     views = models.IntegerField(null=True, blank=True)
+#     estimated_minutes_watched = models.IntegerField(null=True, blank=True)
+#     average_view_duration = models.IntegerField(null=True, blank=True)
+#     likes = models.IntegerField(null=True, blank=True)
+#     dislikes = models.IntegerField(null=True, blank=True)
+#     comments = models.IntegerField(null=True, blank=True)
+#     shares = models.IntegerField(null=True, blank=True)
+#     impressions = models.IntegerField(null=True, blank=True)
+#     reach = models.IntegerField(null=True, blank=True)
+
+# # Model to store demographic data related to gender
+# class YouTubeGenderDemographics(YouTubeBase):
+#     channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+#     male_percentage = models.FloatField(null=True, blank=True)
+#     female_percentage = models.FloatField(null=True, blank=True)
+#     unknown_percentage = models.FloatField(null=True, blank=True)
+
+# # Model to store demographic data related to age groups
+# class YouTubeAgeDemographics(YouTubeBase):
+#     channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+#     age_group_13_17 = models.FloatField(null=True, blank=True)
+#     age_group_18_24 = models.FloatField(null=True, blank=True)
+#     age_group_25_34 = models.FloatField(null=True, blank=True)
+#     age_group_35_44 = models.FloatField(null=True, blank=True)
+#     age_group_45_54 = models.FloatField(null=True, blank=True)
+#     age_group_55_64 = models.FloatField(null=True, blank=True)
+#     age_group_65_plus = models.FloatField(null=True, blank=True)
+
+# # Model to store geographic demographic data
+# class YouTubeGeographicDemographics(YouTubeBase):
+#     channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+#     country = models.CharField(max_length=100, null=True, blank=True)
+#     percentage = models.FloatField(null=True, blank=True)
+
+
+
+from django.db import models
+from datetime import datetime
+
+# Base model for YouTube data
+class YouTubeBase(models.Model):
+    date = models.DateTimeField(default=datetime.now, null=True, blank=True)
+    influencer = models.ForeignKey(InfluencerAccount, on_delete=models.CASCADE, null=True, blank=True)
+
+    class Meta:
+        abstract = True
+
+# Model to store basic information about a YouTube channel
+class YouTubeChannelInformation(YouTubeBase):
+    channel_id = models.CharField(unique=True, max_length=100)
+    title = models.CharField(max_length=255, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    custom_url = models.CharField(max_length=255, null=True, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    thumbnail_url = models.CharField(max_length=1000, null=True, blank=True)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    view_count = models.IntegerField(null=True, blank=True)
+    subscriber_count = models.IntegerField(null=True, blank=True)
+    video_count = models.IntegerField(null=True, blank=True)
+    hidden_subscriber_count = models.BooleanField(default=False)
+    access_token = models.CharField(max_length=300, null=True, blank=True)
+    refresh_token = models.CharField(max_length=300, null=True, blank=True)  # Add this field
+    token_expiry = models.DateTimeField(null=True, blank=True)  # Add this field to track expiry time
+
+
+# Model to store detailed analytics data for a YouTube channel
+class YouTubeChannelAnalytics(YouTubeBase):
+    channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+    views = models.IntegerField(null=True, blank=True)
+    estimated_minutes_watched = models.IntegerField(null=True, blank=True)
+    average_view_duration = models.IntegerField(null=True, blank=True)
+    total_interactions = models.IntegerField(null=True, blank=True)
+    likes = models.IntegerField(null=True, blank=True)
+    dislikes = models.IntegerField(null=True, blank=True)
+    comments = models.IntegerField(null=True, blank=True)
+    shares = models.IntegerField(null=True, blank=True)
+
+# Model to store video-specific information
+class YouTubeVideoInformation(models.Model):
+    channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+    video_id = models.CharField(unique=True, max_length=100)
+    title = models.CharField(max_length=255, null=True, blank=True)
+    description = models.TextField(null=True, blank=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    thumbnail_url = models.CharField(max_length=1000, null=True, blank=True)
+    duration = models.DurationField(null=True, blank=True)
+
+# Model to store analytics data for a specific video
+class YouTubeVideoAnalytics(YouTubeBase):
+    video_information = models.ForeignKey(YouTubeVideoInformation, on_delete=models.CASCADE)
+    views = models.IntegerField(null=True, blank=True)
+    estimated_minutes_watched = models.IntegerField(null=True, blank=True)
+    average_view_duration = models.IntegerField(null=True, blank=True)
+    likes = models.IntegerField(null=True, blank=True)
+    dislikes = models.IntegerField(null=True, blank=True)
+    comments = models.IntegerField(null=True, blank=True)
+    shares = models.IntegerField(null=True, blank=True)
+    impressions = models.IntegerField(null=True, blank=True)
+    reach = models.IntegerField(null=True, blank=True)
+
+# Model to store demographic data related to gender
+class YouTubeGenderDemographics(YouTubeBase):
+    channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+    male_percentage = models.FloatField(null=True, blank=True)
+    female_percentage = models.FloatField(null=True, blank=True)
+    unknown_percentage = models.FloatField(null=True, blank=True)
+
+# Model to store demographic data related to age groups
+class YouTubeAgeDemographics(YouTubeBase):
+    channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+    age_group_13_17 = models.FloatField(null=True, blank=True)
+    age_group_18_24 = models.FloatField(null=True, blank=True)
+    age_group_25_34 = models.FloatField(null=True, blank=True)
+    age_group_35_44 = models.FloatField(null=True, blank=True)
+    age_group_45_54 = models.FloatField(null=True, blank=True)
+    age_group_55_64 = models.FloatField(null=True, blank=True)
+    age_group_65_plus = models.FloatField(null=True, blank=True)
+
+# Model to store geographic demographic data
+class YouTubeGeographicDemographics(YouTubeBase):
+    channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+    country = models.CharField(max_length=100, null=True, blank=True)
+    percentage = models.FloatField(null=True, blank=True)
+
+
+class YoutubeService(models.Model):
+    channel_information = models.ForeignKey(YouTubeChannelInformation, on_delete=models.CASCADE)
+    service_name = models.CharField(max_length=100, null=True, blank=True)
+    service_type = models.CharField(max_length=100, null=True, blank=True)
+    post_type = models.CharField(max_length=100, null=True, blank=True)
+    post_length = models.IntegerField(null=True, blank=True)
+    content_provider = models.CharField(max_length=100, null=True, blank=True)
+
+class YoutubeServicePricing(models.Model):
+    service = models.ForeignKey(YoutubeService, on_delete=models.CASCADE, related_name="youtube_pricings")
+    pricing_type = models.CharField(max_length=100, null=True, blank=True)
+    price = models.FloatField(null=True, blank=True)
+
+class YoutubeRequests(models.Model):
+    business = models.ForeignKey(BusinessAccount, on_delete=models.CASCADE)
+    influencer = models.ForeignKey(InfluencerAccount, on_delete=models.CASCADE)
+    service = models.ForeignKey(YoutubeService, on_delete=models.CASCADE)
     state = models.CharField(max_length=100, null=True, blank=True)
     request_date = models.DateTimeField(default=datetime.now, null=True, blank=True)

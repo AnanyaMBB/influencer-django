@@ -29,6 +29,16 @@ from .models import (
     Requests
 )
 
+from .models import (
+    YouTubeChannelInformation,
+    YouTubeChannelAnalytics,
+    YouTubeVideoInformation,
+    YouTubeVideoAnalytics,
+    YouTubeGenderDemographics,
+    YouTubeAgeDemographics
+)
+
+from . import models
 # Register your models here.
 admin.site.register(BusinessAccount)
 admin.site.register(InfluencerAccount)
@@ -57,4 +67,14 @@ admin.site.register(Files)
 admin.site.register(Service)
 admin.site.register(ServicePricing)
 admin.site.register(Requests)
+admin.site.register(YouTubeChannelInformation)
+admin.site.register(YouTubeChannelAnalytics)
+admin.site.register(YouTubeVideoInformation)
+admin.site.register(YouTubeVideoAnalytics)
+admin.site.register(YouTubeGenderDemographics)
+admin.site.register(YouTubeAgeDemographics)
+admin.site.register(models.YoutubeService)
+admin.site.register(models.YoutubeServicePricing)
+admin.site.register(models.YoutubeRequests)
+
 
