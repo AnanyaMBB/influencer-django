@@ -22,7 +22,7 @@ class ChatModelSerializer(serializers.ModelSerializer):
         ret['user2'] = instance.user2.username
 
         last_message = Message.objects.filter(chat=instance).order_by('timestamp').last()
-        ret["last_message"] = last_message.message
-        ret["last_message_timestamp"] = last_message.timestamp
+        ret["last_message"] = last_message.message if last_message else None
+        ret["last_message_timestamp"] = last_message.timestamp if last_message else None
         return ret
 

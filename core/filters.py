@@ -1,6 +1,7 @@
 import django_filters
 from django.db.models import Q, Max, Sum
 from .models import InfluencerAccount
+from . import models
 
 class InfluencerFilter(django_filters.FilterSet):
     name = django_filters.CharFilter(field_name='user__username', lookup_expr='icontains')
@@ -70,3 +71,27 @@ class InfluencerFilter(django_filters.FilterSet):
     class Meta:
         model = InfluencerAccount
         fields = ['name', 'username', 'followers', 'price', 'location']
+
+
+class PhylloAccountProfileFilter(django_filters.FilterSet):
+    phyllo_account_platform_username = django_filters.CharFilter(lookup_expr="icontains")  # Case-insensitive search
+    phyllo_reputation_follower_count = django_filters.RangeFilter()  # Followers range filtering
+    phyllo_category = django_filters.CharFilter(lookup_expr="icontains")  # Niche
+    country = django_filters.CharFilter(method="filter_by_country")  # Custom filter method
+    city = django_filters.CharFilter(method="filter_by_city")  # Custom filter method
+
+    class Meta:
+        model = models.PhylloAccountProfile
+        fields = ["phyllo_account_platform_username", "phyllo_reputation_follower_count", "phyllo_category"]
+
+    def filter_by_country(self, queryset, name, value):
+        """Filter profiles based on audience country demographics."""
+        return queryset.filter(
+            phyllo_account__phylloaddedaccounts__phylloaudiencedemographics__country_demographics__country_code__icontains=value
+        )
+
+    def filter_by_city(self, queryset, name, value):
+        """Filter profiles based on audience city demographics."""
+        return queryset.filter(
+            phyllo_account__phylloaddedaccounts__phylloaudiencedemographics__city_demographics__city__icontains=value
+        )

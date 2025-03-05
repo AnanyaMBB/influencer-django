@@ -27,12 +27,15 @@ from .models import (
     Files,
     Service,
     ServicePricing,
-    Requests,
+    Requests
+    # TikTokAccount, 
+    # TikTokAccountInformation   
 )
 
 from . import models
 
 from django.utils import timezone
+from django.db.models import Sum, Avg
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -259,6 +262,186 @@ class OtherServiceGetSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+
+# class InfluencerInstagramInformationSerializer(serializers.ModelSerializer):
+#     user = serializers.CharField(write_only=True)
+
+#     class Meta:
+#         model = InfluencerInstagramInformation
+#         exclude = ["influencer"]
+
+#     def create(self, validated_data):
+#         user = User.objects.get(username=validated_data["user"])
+#         validated_data.pop("user")
+#         influencer = InfluencerAccount.objects.get(user=user)
+#         return InfluencerInstagramInformation.objects.create(
+#             influencer=influencer, **validated_data
+#         )
+    
+# class TikTokAccountSerializer(serializers.ModelSerializer): 
+#     user = serializers.CharField(write_only=True)
+
+#     class Meta: 
+#         model = TikTokAccount
+#         exclude=["tiktok_account"]
+    
+#     def create(self, validated_data):
+#         user = User.objects.get(username=validated_data["user"])
+#         validated_data.pop("user")
+#         tiktok_account = InfluencerAccount.objects.get(user=user)
+#         return TikTokAccount.objects.create(tiktok_account=tiktok_account, **validated_data)
+
+# class TikTokAccountInformationSerializer(serializers.ModelSerializer): 
+#     class Meta: 
+#         model = TikTokAccountInformation 
+#         fields = "__all__"
+
+class PhylloAccountSerializer(serializers.ModelSerializer):
+    user = serializers.CharField(write_only=True)
+
+    class Meta: 
+        model = models.PhylloAccount
+        exclude=["phyllo_account"]
+    
+    def create(self, validated_data):
+        user = User.objects.get(username=validated_data["user"])
+        validated_data.pop("user")
+        phyllo_account = InfluencerAccount.objects.get(user=user)
+        return models.PhylloAccount.objects.create(phyllo_account=phyllo_account, **validated_data)
+
+class PhylloSDKTokenSerializer(serializers.ModelSerializer):
+    pass
+
+# class PhylloAccountProfileSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         model = models.PhylloAccountProfile
+#         fields = [
+#             "phyllo_account_platform_username",
+#             "phyllo_user_name",
+#             "phyllo_reputation_follower_count",
+#             "phyllo_category",
+#         ]
+
+
+class PhylloAccountProfileSerializer(serializers.ModelSerializer):
+    avg_like_count = serializers.SerializerMethodField()
+    avg_view_count = serializers.SerializerMethodField()
+    avg_impression_count = serializers.SerializerMethodField()
+    avg_reach_count = serializers.SerializerMethodField()
+    avg_share_count = serializers.SerializerMethodField()
+    engagement_rate = serializers.SerializerMethodField()
+
+    class Meta:
+        model = models.PhylloAccountProfile
+        fields = [
+            "phyllo_account_platform_username",
+            "phyllo_user_name",
+            "phyllo_reputation_follower_count",
+            "phyllo_category",
+            "avg_like_count",
+            "avg_view_count",
+            "avg_impression_count",
+            "avg_reach_count",
+            "avg_share_count",
+            "engagement_rate",
+            "phyllo_work_platform_name",
+            "phyllo_country",
+            "id", 
+            "phyllo_accountid",
+            "phyllo_image_url"
+        ]
+
+    def get_avg_like_count(self, obj):
+        return self._calculate_average(obj, "phyllo_engagement_like_count")
+
+    def get_avg_view_count(self, obj):
+        return self._calculate_average(obj, "phyllo_engagement_view_count")
+
+    def get_avg_impression_count(self, obj):
+        return self._calculate_average(obj, "phyllo_engagement_impression_organic_count")
+
+    def get_avg_reach_count(self, obj):
+        return self._calculate_average(obj, "phyllo_engagement_reach_organic_count")
+
+    def get_avg_share_count(self, obj):
+        return self._calculate_average(obj, "phyllo_engagement_share_count")
+
+    def get_engagement_rate(self, obj):
+        """Compute engagement rate only for the content associated with the specific PhylloAddedAccounts."""
+        content_queryset = models.PhylloContentData.objects.filter(phyllo_account=obj.phyllo_account)
+
+        total_likes = content_queryset.aggregate(Sum("phyllo_engagement_like_count"))["phyllo_engagement_like_count__sum"] or 0
+        total_comments = content_queryset.aggregate(Sum("phyllo_engagement_comment_count"))["phyllo_engagement_comment_count__sum"] or 0
+        total_shares = content_queryset.aggregate(Sum("phyllo_engagement_share_count"))["phyllo_engagement_share_count__sum"] or 0
+        total_impressions = content_queryset.aggregate(Sum("phyllo_engagement_impression_organic_count"))["phyllo_engagement_impression_organic_count__sum"] or 1  # Avoid division by zero
+
+        total_engagements = total_likes + total_comments + total_shares
+
+        return round((total_engagements / total_impressions) * 100, 2) if total_impressions > 0 else 0
+
+    def _calculate_average(self, obj, field_name):
+        """Compute the average metric only for the content associated with the specific added account."""
+        content_queryset = models.PhylloContentData.objects.filter(phyllo_account=obj.phyllo_account)
+        avg_value = content_queryset.aggregate(Avg(field_name)).get(f"{field_name}__avg", 0)
+        return round(avg_value, 2) if avg_value else 0
+
+class PhylloAddedAccountsSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model = models.PhylloAddedAccounts
+        fields = "__all__"
+
+class PhylloPostedContentDataSerializer(serializers.ModelSerializer): 
+    class Meta: 
+        model = models.PhylloPostedContentData
+        fields = "__all__"
+    
+class PhylloScheduledPostSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model = models.PhylloScheduledPost  
+        fields = "__all__"
+        
+class CampaignSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(write_only=True)
+    user = serializers.CharField(read_only=True)
+
+    class Meta: 
+        model = models.Campaign
+        # exclude=["user"]
+        fields="__all__"
+
+    def create(self, validated_data):
+        username = validated_data.pop('username')  # Extract username
+        user = serializers.CharField(source="user.username", read_only=True)
+        try:
+            user = User.objects.get(username=username)  # Fetch User object
+        except User.DoesNotExist:
+            raise serializers.ValidationError({"username": "User not found."})
+
+        return models.Campaign.objects.create(user=user, **validated_data)
+
+    # def to_representation(self, instance):
+    #     ret = super().to_representation(instance)
+
+    #     user = User.objects.get(id=ret["user"])
+    #     ret["user"] = user.username
+
+    #     return ret
+
+class CampaignInfluencerSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model = models.CampaignInfluencer
+        fields = "__all__"
+
+class CampaignFilesSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model=models.CampaignFiles
+        fields = "__all__"
+
+class InfluencerServiceSerializer(serializers.ModelSerializer):
+    class Meta: 
+        model=models.InfluencerService
+        fields = "__all__"
+
 class InstagramBaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = InstagramBase
@@ -371,8 +554,10 @@ class ContractSerializer(serializers.ModelSerializer):
 
         business = BusinessAccount.objects.get(id=ret["business"])
         ret["business"] = business.user.username
-        influencer = InfluencerAccount.objects.get(id=ret["influencer"])
-        ret["influencer"] = influencer.user.username
+        influencer = models.PhylloAccountProfile.objects.filter(phyllo_account=ret["phyllo_added_account"])
+        # influencer = InfluencerAccount.objects.get(id=ret["influencer"])
+        ret["phyllo_added_account"] = influencer[0].phyllo_account_platform_username
+        # ret["influencer"] = influencer.user.username
 
         return ret
 
@@ -401,6 +586,26 @@ class ContractVersionSerializer(serializers.ModelSerializer):
         model = ContractVersion
         fields = "__all__"
 
+class ContractVersionByAccountSerializer(serializers.ModelSerializer): 
+    business_name = serializers.SerializerMethodField()
+    influencer = serializers.SerializerMethodField()
+    class Meta: 
+        model=models.ContractVersion
+        fields=[
+            "contract",
+            "contract_version",
+            "contract_date",
+            "is_influencer",
+            "file_uploader",
+            "file_upload_date",
+            "business_name", 
+            "influencer"
+        ]
+
+    def get_business_name(self, obj):
+        return obj.contract.business.company_name
+    def get_influencer(self, obj): 
+        return models.PhylloAccountProfile.objects.filter(phyllo_account=obj.contract.phyllo_added_account)[0].phyllo_account_platform_username
 
 class ContractVersionTextUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -427,10 +632,10 @@ class SignatureRequestsSerializer(serializers.ModelSerializer):
         ret["request_user"] = user.username
 
         contract = Contract.objects.get(contract_id=ret["contract"])
-        instagramInitialInformation = InstagramInitialInformation.objects.filter(
-            influencer_instagram_information=contract.influencerInstagramInformation
-        ).first()
-        ret["influencer"] = instagramInitialInformation.username
+        # instagramInitialInformation = InstagramInitialInformation.objects.filter(
+        #     influencer_instagram_information=contract.influencerInstagramInformation
+        # ).first()
+        # ret["influencer"] = instagramInitialInformation.username
 
         ret["business"] = contract.business.company_name
 

@@ -40,12 +40,12 @@ SIMPLE_JWT = {
 SIGNNOW_API_KEY = config("SIGNNOW_API_KEY")
 SIGNNOW_EMAIL = config("SIGNNOW_EMAIL")
 SIGNNOW_PASSWORD = config("SIGNNOW_PASSWORD")
+SIGNNOW_WEBHOOK_SECRET = config("SIGNNOW_WEBHOOK_SECRET")
 OPENAI_API_KEY = config("OPENAI_API_KEY")
 WEAVIATE_API_KEY = config("WEAVIATE_API_KEY")
 WEAVIATE_CLUSTER_URL = config("WEAVIATE_CLUSTER_URL")
 REDIS_HOST = config("REDIS_HOST")
 REDIS_PORT = config("REDIS_PORT")
-
 # settings.py
 PAYPAL_CLIENT_ID = (
     "AZK_m7FsxCJ1rZXNQNH5CizyZm_TU9lf7RWgrZWgnB-yPL8is5j2ztyBFzyXaEZjIHmTgHtdXEbA3k7a"
@@ -54,6 +54,33 @@ PAYPAL_CLIENT_SECRET = (
     "EI0oBSAbAeYCNfzDJJ5Cg_La2UnDvvwwKh_a6INH_UaR-VyvwtTExmR5s3qUP52Hq3z0TN20wcrViwdO"
 )
 PAYPAL_MODE = "sandbox"  # or 'live' for production
+
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+AWS_ACCESS_KEY_ID = 'DO00NZR2HT4JRVM9MGPQ'
+AWS_SECRET_ACCESS_KEY = 'wT0fhEAu2AzA8/+9acqiMP8KY/nlPzcmDHtRdr09HhQ'
+AWS_STORAGE_BUCKET_NAME = 'marketing-os-key-1'
+AWS_S3_ENDPOINT_URL = 'https://marketingos.nyc3.digitaloceanspaces.com'
+AWS_QUERYSTRING_AUTH = False  # Optional, makes file URLs public
+AWS_DEFAULT_ACL = 'public-read'
+
+# Add or update these lines:
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # or your broker URL
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+
+from celery.schedules import crontab
+
+CELERY_BEAT_SCHEDULE = {
+    'publish-scheduled-posts-every-minute': {
+        'task': 'core.tasks.publish_scheduled_posts',
+        'schedule': crontab(minute='*'),  # every minute
+    },
+    'grab-published-analytics-every-minute': {
+        'task': 'core.tasks.grab_published_analytics',
+        'schedule': crontab(minute='*'),  # every minute
+    },
+}
 
 
 # Application definition
@@ -95,6 +122,7 @@ REST_FRAMEWORK = {
 
 CORS_ALLOWED_ORIGINS = [
     # "http://64.225.1.169",
+    "http://127.0.0.1:3000",
     "http://localhost:3000",
     "http://www.buzzfindr.com", 
     "http://buzzfindr.com",
@@ -104,6 +132,7 @@ CORS_ALLOWED_ORIGINS = [
     "https://4b87fdd3364da9d7d6a96493295368ee.loophole.site",
     "https://b45687c8aa5886450c22f9186cf29f43.loophole.site",
     "https://93c301590d5dd7f37ad0e33c7f196edf.loophole.site",
+    "https://skylark-solid-severely.ngrok-free.app"
 ]
 
 ROOT_URLCONF = "influencerBackend.urls"
@@ -140,23 +169,23 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.sqlite3",
-#         "NAME": BASE_DIR / "db.sqlite3",
-#     }
-# }
-
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'marketingosdb',
-        'USER': 'ananya',
-        'PASSWORD': 'xc@12#@#@#@',
-        'HOST': 'localhost',
-        'PORT': '5432',
+    "default": {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql_psycopg2',
+#         'NAME': 'marketingosdb',
+#         'USER': 'ananya',
+#         'PASSWORD': 'xc@12#@#@#@',
+#         'HOST': 'localhost',
+#         'PORT': '5432',
+#     }
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
