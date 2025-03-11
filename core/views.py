@@ -2157,13 +2157,32 @@ def getCreatePhylloUser(request):
         try: 
             phylloAccount = phylloAccount.first()
             phylloSDKToken = models.PhylloSDKToken.objects.filter(phyllo_account=phylloAccount)
-            account_data = {
-                "id": phylloAccount.phyllo_id,
-                "external_id": phylloAccount.phyllo_external_id,
-                "name": phylloAccount.phyllo_name,
-                "sdk_token": phylloSDKToken.first().phyllo_sdk_token
-            }
-            return Response(account_data, status=200)
+            if phylloSDKToken.first().phyllo_expires_at > datetime.now(timezone.utc): 
+                account_data = {
+                    "id": phylloAccount.phyllo_id,
+                    "external_id": phylloAccount.phyllo_external_id,
+                    "name": phylloAccount.phyllo_name,
+                    "sdk_token": phylloSDKToken.first().phyllo_sdk_token
+                }
+                return Response(account_data, status=200)
+            else: 
+                url = "https://api.staging.insightiq.ai/v1/sdk-tokens"
+
+                payload = {
+                    "user_id": phylloAccount.phyllo_id,
+                    "products": ["IDENTITY", "IDENTITY.AUDIENCE", "ENGAGEMENT", "ENGAGEMENT.AUDIENCE", "INCOME", "PUBLISH.CONTENT", "ACTIVITY"]
+                }
+                headers = {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "Authorization": f"Basic {encoded_credentials}"
+                }
+
+                response = requests.post(url, json=payload, headers=headers)
+                phylloSDKToken.first().phyllo_sdk_token = response.json()["sdk_token"]
+                phylloSDKToken.first().phyllo_expires_at = datetime.fromisoformat(response.json()["expires_at"])
+                phylloSDKToken.first.save()
+
         except Exception as e:
             return Response({"error": str(e)}, status=500)
     
