@@ -2184,7 +2184,7 @@ def getCreatePhylloUser(request):
                 response = requests.post(url, json=payload, headers=headers)
                 phylloSDKToken.first().phyllo_sdk_token = response.json()["sdk_token"]
                 phylloSDKToken.first().phyllo_expires_at = datetime.fromisoformat(response.json()["expires_at"])
-                phylloSDKToken.first.save()
+                phylloSDKToken.first().save()
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
