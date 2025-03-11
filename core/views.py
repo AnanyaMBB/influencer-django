@@ -2168,6 +2168,9 @@ def getCreatePhylloUser(request):
             else: 
                 url = "https://api.staging.insightiq.ai/v1/sdk-tokens"
 
+                credentials = "d1c95dc7-0ad9-4db3-8530-14b33ed91842:6eb3551e-db1a-4f5f-acbc-fb8f91dbc936"
+                encoded_credentials = base64.b64encode(credentials.encode()).decode()
+
                 payload = {
                     "user_id": phylloAccount.phyllo_id,
                     "products": ["IDENTITY", "IDENTITY.AUDIENCE", "ENGAGEMENT", "ENGAGEMENT.AUDIENCE", "INCOME", "PUBLISH.CONTENT", "ACTIVITY"]
